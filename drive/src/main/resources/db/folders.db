@@ -1,0 +1,23 @@
+CREATE TABLE folders (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    uuid CHAR(36) NOT NULL UNIQUE,
+
+    user_id BIGINT NOT NULL,
+    parent_folder_id BIGINT NULL,
+
+    name VARCHAR(255) NOT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_folder_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_parent_folder
+        FOREIGN KEY (parent_folder_id)
+        REFERENCES folders(id)
+        ON DELETE CASCADE
+);

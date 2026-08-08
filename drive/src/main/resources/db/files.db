@@ -1,0 +1,35 @@
+CREATE TABLE files (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    uuid CHAR(36) NOT NULL UNIQUE,
+
+    user_id BIGINT NOT NULL,
+    folder_id BIGINT NULL,
+
+    original_name VARCHAR(255) NOT NULL,
+    stored_name VARCHAR(255) NOT NULL,
+
+    extension VARCHAR(20),
+    mime_type VARCHAR(150),
+
+    size BIGINT NOT NULL,
+
+    storage_path TEXT NOT NULL,
+
+    checksum VARCHAR(64),
+
+    is_public BOOLEAN DEFAULT FALSE,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_file_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_file_folder
+        FOREIGN KEY (folder_id)
+        REFERENCES folders(id)
+        ON DELETE SET NULL
+);

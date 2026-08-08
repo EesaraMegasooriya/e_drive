@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .input { @apply w-full rounded-lg border border-[#E4E1DA] bg-white px-3 py-2.5 text-sm text-[#1B1D1B] outline-none transition focus:border-[#1F5C52] focus:ring-2 focus:ring-[#1F5C52]/20; }
+  .button { @apply inline-flex items-center gap-2 rounded-lg bg-[#1F5C52] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#184A42] disabled:cursor-not-allowed disabled:opacity-60; }
+}
+
+/* Share dialog */
+.swal2-popup.share-dialog {
+  width: min(92vw, 640px);
+  padding: 2rem;
+  border: 1px solid #e4e1da;
+  border-radius: 1.25rem;
+  box-shadow: 0 24px 80px rgb(27 29 27 / 0.24);
+}
+
+.swal2-title.share-dialog__title {
+  margin: 0;
+  color: #1b1d1b;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+
+.share-dialog__content {
+  margin: 1rem 0 0;
+  text-align: left;
+}
+
+.share-dialog__intro {
+  margin: 0 0 1.25rem;
+  color: #5b5f5c;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.share-dialog__filename {
+  color: #1b1d1b;
+  font-weight: 600;
+}
+
+.share-dialog__link-card {
+  margin-top: 0.75rem;
+  padding: 1rem;
+  border: 1px solid #e4e1da;
+  border-radius: 0.875rem;
+  background: #faf9f6;
+}
+
+.share-dialog__link-card--primary {
+  border-color: #b9d2cd;
+  background: #eef4f2;
+}
+
+.share-dialog__eyebrow {
+  display: block;
+  color: #1f5c52;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.share-dialog__description {
+  margin: 0.3rem 0 0.75rem;
+  color: #5b5f5c;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.share-dialog__url {
+  display: block;
+  overflow-wrap: anywhere;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid #d8d4ca;
+  border-radius: 0.5rem;
+  background: rgb(255 255 255 / 0.78);
+  color: #454845;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.swal2-actions.share-dialog__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  gap: 0.75rem;
+  margin: 1.5rem 0 0;
+}
+
+.swal2-actions.share-dialog__actions button {
+  width: 100%;
+  margin: 0;
+  padding: 0.78rem 0.9rem;
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.swal2-actions.share-dialog__actions .share-dialog__copy-share {
+  background: #1f5c52;
+}
+
+.swal2-actions.share-dialog__actions .share-dialog__copy-asset {
+  border: 1px solid #d8d4ca;
+  background: white;
+  color: #1b1d1b;
+}
+
+@media (max-width: 520px) {
+  .swal2-popup.share-dialog {
+    padding: 1.5rem;
+  }
+
+  .swal2-actions.share-dialog__actions {
+    grid-template-columns: 1fr;
+  }
+}
