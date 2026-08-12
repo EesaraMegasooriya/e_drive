@@ -5,4 +5,7 @@ export default {
   files: async () => (await axios.get("/admin/files")).data,
   setUserActive: (uuid, active) =>
     axios.put(`/admin/users/${uuid}/active`, null, { params: { active } }),
+  resetPassword: (uuid, password) =>
+    axios.put(`/admin/users/${uuid}/password`, { password }),
+  deleteUser: (uuid) => axios.delete(`/admin/users/${uuid}`),
 };

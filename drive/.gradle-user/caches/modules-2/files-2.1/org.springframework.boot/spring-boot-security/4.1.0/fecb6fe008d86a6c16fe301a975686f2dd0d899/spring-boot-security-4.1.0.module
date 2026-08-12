@@ -1,0 +1,146 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "org.springframework.boot",
+    "module": "spring-boot-security",
+    "version": "4.1.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.5.0"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.security",
+          "module": "spring-security-config",
+          "version": {
+            "requires": "7.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.security",
+          "module": "spring-security-web",
+          "version": {
+            "requires": "7.1.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-boot-security-4.1.0.jar",
+          "url": "spring-boot-security-4.1.0.jar",
+          "size": 97812,
+          "sha512": "440d9b6736427826370be80b9221d2a48c840e39c5634a51b1317f21f278c2c9ae9b1f8eb130cef4fb55fc55b35d190556cfe56836b3147fc98cf3531fcb0d39",
+          "sha256": "5e30a3ea1d62c5ef2af5a8bcf31237583f216f40dbb0b76ec2eda72981ea2bac",
+          "sha1": "1fe5f10c43305d43d8ac22ae5b721010f4394449",
+          "md5": "43b872a504bd6256e323dab581e4b2ea"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.security",
+          "module": "spring-security-config",
+          "version": {
+            "requires": "7.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.security",
+          "module": "spring-security-web",
+          "version": {
+            "requires": "7.1.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-boot-security-4.1.0.jar",
+          "url": "spring-boot-security-4.1.0.jar",
+          "size": 97812,
+          "sha512": "440d9b6736427826370be80b9221d2a48c840e39c5634a51b1317f21f278c2c9ae9b1f8eb130cef4fb55fc55b35d190556cfe56836b3147fc98cf3531fcb0d39",
+          "sha256": "5e30a3ea1d62c5ef2af5a8bcf31237583f216f40dbb0b76ec2eda72981ea2bac",
+          "sha1": "1fe5f10c43305d43d8ac22ae5b721010f4394449",
+          "md5": "43b872a504bd6256e323dab581e4b2ea"
+        }
+      ]
+    },
+    {
+      "name": "javadocElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "javadoc",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "spring-boot-security-4.1.0-javadoc.jar",
+          "url": "spring-boot-security-4.1.0-javadoc.jar",
+          "size": 268359,
+          "sha512": "313d30d8e888f2c4c63cae1e6dddb42176cbff1ad8258d3cc8103e0e69ee6ad8f99e16210fb79580884e9e49c71b324ec7236fb676f2aa2438dec615d1c4bad3",
+          "sha256": "88f8f3cf2a21172d9da77f4ec3b4f01b82e3a9a30f43a4aa47e8acd51ddac2f1",
+          "sha1": "918b36d41ca75c328b9f78ad39b02ada07141728",
+          "md5": "9f04a137543ef818c5ee9ebb996b0661"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "spring-boot-security-4.1.0-sources.jar",
+          "url": "spring-boot-security-4.1.0-sources.jar",
+          "size": 57013,
+          "sha512": "c231fd9bba96783628fe264b1aff4a493decd1382ae916aef301bcd24e5f6ea73686cb69bbd1940ca98ff68e707624100847eb295fd5996d9601dcae8ce6b327",
+          "sha256": "a3ea044d2b2c6c612f12e753a33b543b10b8e3f28be4b6d13235d6680ec83782",
+          "sha1": "70d42dc7fc5e59b24db62a3b3908ed7b0fdb7634",
+          "md5": "34ae6851013a12d47343d3f4bd7162a7"
+        }
+      ]
+    }
+  ]
+}

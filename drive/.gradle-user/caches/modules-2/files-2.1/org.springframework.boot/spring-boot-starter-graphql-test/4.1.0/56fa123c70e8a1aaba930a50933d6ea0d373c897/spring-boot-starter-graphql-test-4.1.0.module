@@ -1,0 +1,174 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "org.springframework.boot",
+    "module": "spring-boot-starter-graphql-test",
+    "version": "4.1.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.5.0"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter-graphql",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter-test",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter-jackson-test",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-graphql-test",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-webtestclient",
+          "version": {
+            "requires": "4.1.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-boot-starter-graphql-test-4.1.0.jar",
+          "url": "spring-boot-starter-graphql-test-4.1.0.jar",
+          "size": 4747,
+          "sha512": "af073f64e98c3693e8ac427cc230d5da3383274d9df594fc3fb26297c34080fd4021439594b5bd5e00d69653134598f4d8c881b06e76dd01757d5a82f6b05200",
+          "sha256": "5b47f0ed636c69f42d7458eb0932422ad65d2137a5c107eddf51423736ec2ff1",
+          "sha1": "930fd26e66bd27dd6a97062b1f84f224037fc18b",
+          "md5": "0ee754e226384f69513a929b4ffb5f19"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter-graphql",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter-test",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter-jackson-test",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-graphql-test",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-webtestclient",
+          "version": {
+            "requires": "4.1.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-boot-starter-graphql-test-4.1.0.jar",
+          "url": "spring-boot-starter-graphql-test-4.1.0.jar",
+          "size": 4747,
+          "sha512": "af073f64e98c3693e8ac427cc230d5da3383274d9df594fc3fb26297c34080fd4021439594b5bd5e00d69653134598f4d8c881b06e76dd01757d5a82f6b05200",
+          "sha256": "5b47f0ed636c69f42d7458eb0932422ad65d2137a5c107eddf51423736ec2ff1",
+          "sha1": "930fd26e66bd27dd6a97062b1f84f224037fc18b",
+          "md5": "0ee754e226384f69513a929b4ffb5f19"
+        }
+      ]
+    },
+    {
+      "name": "javadocElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "javadoc",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "spring-boot-starter-graphql-test-4.1.0-javadoc.jar",
+          "url": "spring-boot-starter-graphql-test-4.1.0-javadoc.jar",
+          "size": 4747,
+          "sha512": "af073f64e98c3693e8ac427cc230d5da3383274d9df594fc3fb26297c34080fd4021439594b5bd5e00d69653134598f4d8c881b06e76dd01757d5a82f6b05200",
+          "sha256": "5b47f0ed636c69f42d7458eb0932422ad65d2137a5c107eddf51423736ec2ff1",
+          "sha1": "930fd26e66bd27dd6a97062b1f84f224037fc18b",
+          "md5": "0ee754e226384f69513a929b4ffb5f19"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "spring-boot-starter-graphql-test-4.1.0-sources.jar",
+          "url": "spring-boot-starter-graphql-test-4.1.0-sources.jar",
+          "size": 4747,
+          "sha512": "af073f64e98c3693e8ac427cc230d5da3383274d9df594fc3fb26297c34080fd4021439594b5bd5e00d69653134598f4d8c881b06e76dd01757d5a82f6b05200",
+          "sha256": "5b47f0ed636c69f42d7458eb0932422ad65d2137a5c107eddf51423736ec2ff1",
+          "sha1": "930fd26e66bd27dd6a97062b1f84f224037fc18b",
+          "md5": "0ee754e226384f69513a929b4ffb5f19"
+        }
+      ]
+    }
+  ]
+}

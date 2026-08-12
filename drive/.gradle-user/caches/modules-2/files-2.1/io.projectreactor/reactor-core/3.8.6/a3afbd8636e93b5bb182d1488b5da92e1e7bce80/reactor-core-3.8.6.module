@@ -1,0 +1,92 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.projectreactor",
+    "module": "reactor-core",
+    "version": "3.8.6",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.5.1"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 8,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "org.reactivestreams",
+          "module": "reactive-streams",
+          "version": {
+            "requires": "1.0.4"
+          }
+        },
+        {
+          "group": "org.jspecify",
+          "module": "jspecify",
+          "version": {
+            "requires": "1.0.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "reactor-core-3.8.6.jar",
+          "url": "reactor-core-3.8.6.jar",
+          "size": 1938752,
+          "sha512": "e11bde76627aa11d1893583f28718d4b041e3a2e66f9382b043997728d04fbebbd937ab28822f4c5ba39daf62dbccbe7c76eb0ea67af25db8c96a39b9c8c6111",
+          "sha256": "ffc646b225465efce55d3ea350f1bcd1d27d4a56e912323e316dd8e6d04bff11",
+          "sha1": "76285d63d5da4ed8679357628dd5309b0feb77ff",
+          "md5": "a3eb4847d95dbae8adbbd4ded10b3648"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 8,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.reactivestreams",
+          "module": "reactive-streams",
+          "version": {
+            "requires": "1.0.4"
+          }
+        },
+        {
+          "group": "org.jspecify",
+          "module": "jspecify",
+          "version": {
+            "requires": "1.0.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "reactor-core-3.8.6.jar",
+          "url": "reactor-core-3.8.6.jar",
+          "size": 1938752,
+          "sha512": "e11bde76627aa11d1893583f28718d4b041e3a2e66f9382b043997728d04fbebbd937ab28822f4c5ba39daf62dbccbe7c76eb0ea67af25db8c96a39b9c8c6111",
+          "sha256": "ffc646b225465efce55d3ea350f1bcd1d27d4a56e912323e316dd8e6d04bff11",
+          "sha1": "76285d63d5da4ed8679357628dd5309b0feb77ff",
+          "md5": "a3eb4847d95dbae8adbbd4ded10b3648"
+        }
+      ]
+    }
+  ]
+}

@@ -8,6 +8,7 @@ import com.eesara.drive.security.service.CurrentUserService;
 import com.eesara.drive.share.dto.AssetUrlResponse;
 import com.eesara.drive.share.dto.CreateShareRequest;
 import com.eesara.drive.share.dto.ShareResponse;
+import com.eesara.drive.share.dto.PublicFolderFileResponse;
 import com.eesara.drive.share.entity.ShareLink;
 import com.eesara.drive.share.entity.ShareType;
 import com.eesara.drive.share.repository.ShareLinkRepository;
@@ -17,12 +18,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -79,6 +82,7 @@ public class ShareServiceImpl implements ShareService {
                                         "." +
                                         file.getExtension()
                         )
+                        .contentsUrl(null)
                         .build();
             }
 
@@ -105,6 +109,7 @@ public class ShareServiceImpl implements ShareService {
                         .token(share.getToken())
                         .shareUrl(baseUrl + "/share/" + share.getToken())
                         .assetUrl(null)
+                        .contentsUrl(folderContentsUrl(share.getToken()))
                         .build();
             }
 
@@ -132,6 +137,7 @@ public class ShareServiceImpl implements ShareService {
         } else {
 
             response.assetUrl(null);
+            response.contentsUrl(folderContentsUrl(share.getToken()));
 
         }
 
@@ -180,7 +186,7 @@ public class ShareServiceImpl implements ShareService {
     }
 
     @Override
-public List<AssetUrlResponse> getFolderAssetUrls(String folderUuid) {
+    public List<AssetUrlResponse> getFolderAssetUrls(String folderUuid) {
 
     User owner = currentUserService.getCurrentUser();
 
@@ -226,6 +232,21 @@ public List<AssetUrlResponse> getFolderAssetUrls(String folderUuid) {
             })
             .toList();
 }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PublicFolderFileResponse> getPublicFolderFiles(String token) {
+
+        ShareLink share = getByToken(token);
+
+        if (share.getType() != ShareType.FOLDER || share.getFolder() == null) {
+            throw new RuntimeException("Not a folder share");
+        }
+
+        List<PublicFolderFileResponse> files = new ArrayList<>();
+        collectPublicFolderFiles(share.getFolder(), "", token, files);
+        return files;
+    }
    
 
     @Override
@@ -263,6 +284,26 @@ public List<AssetUrlResponse> getFolderAssetUrls(String folderUuid) {
         );
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Resource getSharedFolderResource(String token, String fileUuid) {
+
+        ShareLink share = getByToken(token);
+
+        if (share.getType() != ShareType.FOLDER || share.getFolder() == null) {
+            throw new RuntimeException("Not a folder share");
+        }
+
+        DriveFile file = driveFileRepository.findByUuid(fileUuid)
+                .orElseThrow(() -> new RuntimeException("File not found"));
+
+        if (!belongsToFolderTree(file.getFolder(), share.getFolder())) {
+            throw new RuntimeException("File is not part of this shared folder");
+        }
+
+        return storageService.loadAsResource(file.getStoragePath());
+    }
+
     private String generateToken() {
 
         byte[] bytes = new byte[16];
@@ -277,5 +318,53 @@ public List<AssetUrlResponse> getFolderAssetUrls(String folderUuid) {
     private boolean isPublicFile(DriveFile file) {
         return Boolean.TRUE.equals(file.getIsPublic())
                 || (file.getFolder() != null && Boolean.TRUE.equals(file.getFolder().getIsPublic()));
+    }
+
+    private void collectPublicFolderFiles(
+            Folder folder,
+            String parentPath,
+            String token,
+            List<PublicFolderFileResponse> files
+    ) {
+        String folderPath = parentPath.isBlank()
+                ? folder.getName()
+                : parentPath + "/" + folder.getName();
+
+        driveFileRepository.findByFolder(folder).stream()
+                .filter(file -> !Boolean.TRUE.equals(file.getDeleted()))
+                .forEach(file -> files.add(PublicFolderFileResponse.builder()
+                        .uuid(file.getUuid())
+                        .name(file.getOriginalName())
+                        .extension(file.getExtension())
+                        .mimeType(file.getMimeType())
+                        .size(file.getFileSize())
+                        .path(folderPath + "/" + file.getOriginalName())
+                        .url(folderAssetUrl(token, file))
+                        .build()));
+
+        folder.getChildren().stream()
+                .filter(child -> !Boolean.TRUE.equals(child.getIsDeleted()))
+                .forEach(child -> collectPublicFolderFiles(child, folderPath, token, files));
+    }
+
+    private boolean belongsToFolderTree(Folder fileFolder, Folder sharedFolder) {
+        Folder current = fileFolder;
+
+        while (current != null) {
+            if (current.getId().equals(sharedFolder.getId())) {
+                return true;
+            }
+            current = current.getParent();
+        }
+
+        return false;
+    }
+
+    private String folderContentsUrl(String token) {
+        return baseUrl + "/api/public/folders/" + token;
+    }
+
+    private String folderAssetUrl(String token, DriveFile file) {
+        return folderContentsUrl(token) + "/assets/" + file.getUuid() + "." + file.getExtension();
     }
 }

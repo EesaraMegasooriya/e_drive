@@ -99,8 +99,7 @@ export default function Drive() {
 
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedFolder, setSelectedFolder] = useState(null);
-  const [folderUrls, setFolderUrls] = useState([]);
-  const [folderUrlsLoading, setFolderUrlsLoading] = useState(false);
+  const [folderShare, setFolderShare] = useState(null);
 
   const [query, setQuery] = useState("");
   const [view, setView] = useState("grid"); // grid | list
@@ -135,7 +134,7 @@ export default function Drive() {
 
       setSelectedFile(null);
       setSelectedFolder(null);
-      setFolderUrls([]);
+      setFolderShare(null);
     } catch (error) {
       Swal.fire({
         icon: "error",
@@ -315,28 +314,13 @@ export default function Drive() {
   // -------------------------------------------------------------------------
 
   const openFolder = async (folder) => {
-    setSelectedFile(null);
-    setFolderUrls([]);
-    setFolderUrlsLoading(true);
-
     await loadDrive(folder.uuid);
+  };
 
+  const selectFolder = (folder) => {
+    setSelectedFile(null);
     setSelectedFolder(folder);
-
-    try {
-      if (folder.isPublic) {
-        const urls = await shareApi.getFolderUrls(folder.uuid);
-        setFolderUrls(urls);
-      }
-    } catch (error) {
-      Swal.fire({
-        icon: "error",
-        title: "Couldn't load folder links",
-        text: error.response?.data?.message ?? "Please try again.",
-      });
-    } finally {
-      setFolderUrlsLoading(false);
-    }
+    setFolderShare(null);
   };
 
   const toggleFileVisibility = async (file) => {
@@ -348,15 +332,76 @@ export default function Drive() {
     } catch { Swal.fire({ icon: "error", title: "Couldn't update visibility" }); }
   };
 
-  const toggleFolderVisibility = async (folder) => {
+  const handleFolderRename = async () => {
+    if (!selectedFolder) return;
+
+    const { value: name } = await Swal.fire({
+      title: "Rename folder",
+      input: "text",
+      inputValue: selectedFolder.name,
+      showCancelButton: true,
+      confirmButtonText: "Save",
+      inputValidator: (value) => (!value?.trim() ? "Name can't be empty" : undefined),
+    });
+
+    if (!name?.trim()) return;
+
     try {
-      const updated = await folderApi.setVisibility(folder.uuid, !folder.isPublic);
+      const updated = await folderApi.renameFolder(selectedFolder.uuid, { name: name.trim() });
       setSelectedFolder(updated);
       setFolders((items) => items.map((item) => item.uuid === updated.uuid ? updated : item));
-      setFolderUrls([]);
-      if (updated.isPublic) setFolderUrls(await shareApi.getFolderUrls(updated.uuid));
-      toast.fire({ icon: "success", title: updated.isPublic ? "Folder is public" : "Folder is private" });
-    } catch { Swal.fire({ icon: "error", title: "Couldn't update visibility" }); }
+      toast.fire({ icon: "success", title: "Folder renamed" });
+    } catch (error) {
+      Swal.fire({ icon: "error", title: "Rename failed", text: error.response?.data?.message ?? "Please try again." });
+    }
+  };
+
+  const handleFolderDelete = async () => {
+    if (!selectedFolder) return;
+
+    const result = await Swal.fire({
+      title: `Delete "${selectedFolder.name}"?`,
+      text: "The folder and its contents will no longer be available.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Delete",
+      confirmButtonColor: "#C4432B",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await folderApi.deleteFolder(selectedFolder.uuid);
+      await loadDrive(currentFolder?.uuid ?? null);
+      toast.fire({ icon: "success", title: "Folder deleted" });
+    } catch (error) {
+      Swal.fire({ icon: "error", title: "Delete failed", text: error.response?.data?.message ?? "Please try again." });
+    }
+  };
+
+  const handleFolderShare = async () => {
+    if (!selectedFolder) return;
+
+    try {
+      const share = await shareApi.createShare(selectedFolder.uuid, "FOLDER");
+      setFolderShare(share);
+
+      const result = await Swal.fire({
+        title: "Share this folder",
+        text: "This API link returns an array of every file in the folder, including nested folders.",
+        input: "text",
+        inputValue: share.contentsUrl,
+        inputAttributes: { readOnly: true, "aria-label": "Folder contents API URL" },
+        showCancelButton: true,
+        confirmButtonText: "Copy API link",
+      });
+
+      if (result.isConfirmed) {
+        await copyText(share.contentsUrl, "Folder API link copied");
+      }
+    } catch (error) {
+      Swal.fire({ icon: "error", title: "Couldn't create a folder share link", text: error.response?.data?.message ?? "Please try again." });
+    }
   };
 
   const handleDelete = async () => {
@@ -762,7 +807,8 @@ export default function Drive() {
                     folder={folder}
                     tag={catalogTag("D", i)}
                     active={selectedFolder?.uuid === folder.uuid}
-                    onClick={() => openFolder(folder)}
+                    onClick={() => selectFolder(folder)}
+                    onDoubleClick={() => openFolder(folder)}
                   />
                 ))}
                 {filteredFiles.map((file, i) => (
@@ -773,7 +819,7 @@ export default function Drive() {
                     active={selectedFile?.uuid === file.uuid}
                     onClick={() => {
                       setSelectedFolder(null);
-                      setFolderUrls([]);
+                      setFolderShare(null);
                       setSelectedFile(file);
                     }}
                   />
@@ -785,10 +831,11 @@ export default function Drive() {
                 files={filteredFiles}
                 selectedFile={selectedFile}
                 selectedFolder={selectedFolder}
-                onFolderClick={openFolder}
+                onFolderClick={selectFolder}
+                onFolderDoubleClick={openFolder}
                 onFileClick={(file) => {
                   setSelectedFolder(null);
-                  setFolderUrls([]);
+                  setFolderShare(null);
                   setSelectedFile(file);
                 }}
               />
@@ -812,10 +859,11 @@ export default function Drive() {
               ) : selectedFolder ? (
                 <FolderDetail
                   folder={selectedFolder}
-                  urls={folderUrls}
-                  loading={folderUrlsLoading}
+                  share={folderShare}
                   onCopy={copyText}
-                  onToggleVisibility={() => toggleFolderVisibility(selectedFolder)}
+                  onShare={handleFolderShare}
+                  onRename={handleFolderRename}
+                  onDelete={handleFolderDelete}
                 />
               ) : (
                 <div className="py-12 text-center sm:py-20">
@@ -875,11 +923,12 @@ function EmptyState({ onUpload }) {
   );
 }
 
-function FolderCard({ folder, tag, active, onClick }) {
+function FolderCard({ folder, tag, active, onClick, onDoubleClick }) {
   return (
     <button
       onClick={onClick}
-      title="Open folder"
+      onDoubleClick={onDoubleClick}
+      title="Double-click to open folder"
       className={`group relative rounded-xl border p-4 text-left shadow-sm transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C52] sm:p-5 ${
         active ? "border-[#1F5C52] bg-[#EEF4F2]" : "border-[#E4E1DA] bg-white"
       }`}
@@ -891,7 +940,7 @@ function FolderCard({ folder, tag, active, onClick }) {
       <h3 className="truncate pr-8 text-sm font-semibold text-[#1B1D1B]">
         {folder.name}
       </h3>
-      <p className="mt-1 text-xs text-[#8A8D89]">Click to open</p>
+      <p className="mt-1 text-xs text-[#8A8D89]">Double-click to open</p>
     </button>
   );
 }
@@ -925,6 +974,7 @@ function ListTable({
   selectedFile,
   selectedFolder,
   onFolderClick,
+  onFolderDoubleClick,
   onFileClick,
 }) {
   return (
@@ -939,6 +989,7 @@ function ListTable({
           <li key={folder.uuid}>
             <button
               onClick={() => onFolderClick(folder)}
+              onDoubleClick={() => onFolderDoubleClick(folder)}
               className={`grid w-full grid-cols-[1fr_auto_auto] items-center gap-3 px-3 py-3 text-left hover:bg-[#F7F6F2] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1F5C52] sm:gap-4 sm:px-5 ${
                 selectedFolder?.uuid === folder.uuid ? "bg-[#EEF4F2]" : ""
               }`}
@@ -1056,61 +1107,38 @@ function FileDetail({ file, assetUrl, onAssetError, onDownload, onShare, onToggl
   );
 }
 
-function FolderDetail({ folder, urls, loading, onCopy, onToggleVisibility }) {
+function FolderDetail({ folder, share, onCopy, onShare, onRename, onDelete }) {
   return (
     <>
       <div className="mb-6 text-center">
         <Folder size={64} className="mx-auto text-[#C9971C]" />
         <h2 className="mt-3 break-words text-lg font-bold text-[#1B1D1B]">{folder.name}</h2>
-        <p className="text-sm text-[#8A8D89]">
-          {loading ? "Loading…" : `${urls.length} public file${urls.length === 1 ? "" : "s"}`}
-        </p>
-        <button onClick={onToggleVisibility} className="mt-3 rounded-lg border border-[#E4E1DA] px-3 py-2 text-sm font-medium text-[#1B1D1B] hover:bg-[#F0EEE7]">{folder.isPublic ? "Make private" : "Make public"}</button>
+        <p className="text-sm text-[#8A8D89]">Double-click the folder to open it.</p>
       </div>
 
-      <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
-        {loading ? (
-          Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-20 animate-pulse rounded-lg bg-[#F0EEE7]" />
-          ))
-        ) : urls.length === 0 ? (
-          <div className="py-10 text-center text-sm text-[#8A8D89]">
-            No public files in this folder.
+      {share?.contentsUrl && (
+        <div className="rounded-lg border border-[#B9D2CD] bg-[#EEF4F2] p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#1F5C52]">Folder contents API</p>
+          <div className="flex items-center gap-2">
+            <input readOnly value={share.contentsUrl} className="w-full min-w-0 truncate rounded border border-[#D8D4CA] bg-white px-2 py-1.5 font-mono text-xs text-[#5B5F5C]" />
+            <button onClick={() => onCopy(share.contentsUrl, "Folder API link copied")} aria-label="Copy folder API link" className="shrink-0 rounded border border-[#D8D4CA] p-1.5 text-[#5B5F5C] hover:bg-[#F0EEE7]"><Copy size={14} /></button>
           </div>
-        ) : (
-          urls.map((file) => (
-            <div key={file.url} className="rounded-lg border border-[#E4E1DA] p-3">
-              <div className="mb-2 truncate text-sm font-medium text-[#1B1D1B]">
-                {file.name}
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  readOnly
-                  value={file.url}
-                  className="w-full min-w-0 truncate rounded border border-[#E4E1DA] bg-[#FAF9F6] px-2 py-1.5 font-mono text-xs text-[#5B5F5C]"
-                />
-                <button
-                  onClick={() => onCopy(file.url, "Link copied")}
-                  aria-label={`Copy link for ${file.name}`}
-                  className="shrink-0 rounded border border-[#E4E1DA] p-1.5 text-[#5B5F5C] hover:bg-[#F0EEE7] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C52]"
-                >
-                  <Copy size={14} />
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {urls.length > 0 && (
-        <button
-          onClick={() => onCopy(urls.map((f) => f.url).join("\n"), "All links copied")}
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-[#1F5C52] py-2.5 text-sm font-medium text-white hover:bg-[#184A42] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C52] focus-visible:ring-offset-2"
-        >
-          <Copy size={16} />
-          Copy all links
-        </button>
+        </div>
       )}
+
+      <div className="mt-5 flex flex-col gap-2.5">
+        <button
+          onClick={onShare}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#1F5C52] py-2.5 text-sm font-medium text-white hover:bg-[#184A42] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C52] focus-visible:ring-offset-2"
+        >
+          <Share2 size={16} />
+          Share folder
+        </button>
+        <div className="grid grid-cols-2 gap-2.5">
+          <button onClick={onRename} className="flex items-center justify-center gap-2 rounded-lg border border-[#E4E1DA] bg-white py-2.5 text-sm font-medium text-[#1B1D1B] hover:bg-[#F0EEE7]"><Pencil size={16} />Rename</button>
+          <button onClick={onDelete} className="flex items-center justify-center gap-2 rounded-lg border border-[#F3D3CB] bg-white py-2.5 text-sm font-medium text-[#C4432B] hover:bg-[#FCEDE9]"><Trash2 size={16} />Delete</button>
+        </div>
+      </div>
     </>
   );
 }

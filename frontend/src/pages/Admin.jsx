@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ShieldCheck, Users, FileText, Folder, Link2 } from "lucide-react";
+import { ShieldCheck, Users, FileText, Folder, Link2, KeyRound, Trash2 } from "lucide-react";
+import Swal from "sweetalert2";
 import adminApi from "../api/adminApi";
 
 export default function Admin() {
@@ -23,6 +24,48 @@ export default function Admin() {
   const toggle = async (user) => {
     await adminApi.setUserActive(user.uuid, !user.active);
     await load();
+  };
+  const resetPassword = async (user) => {
+    const { value: password } = await Swal.fire({
+      title: `Reset password for ${user.name}`,
+      input: "password",
+      inputLabel: "New password",
+      inputAttributes: { minLength: 6, autoComplete: "new-password" },
+      showCancelButton: true,
+      confirmButtonText: "Reset password",
+      inputValidator: (value) => value?.length >= 6 ? undefined : "Use at least 6 characters.",
+    });
+    if (!password) return;
+    try {
+      await adminApi.resetPassword(user.uuid, password);
+      Swal.fire({ icon: "success", title: "Password reset", timer: 1400, showConfirmButton: false });
+    } catch (error) {
+      Swal.fire({ icon: "error", title: "Password reset failed", text: error.response?.data?.message ?? "Please try again." });
+    }
+  };
+  const deleteUser = async (user) => {
+    const result = await Swal.fire({
+      title: `Delete ${user.name}?`,
+      text: "All of this user's files, folders, public links, and stored data will be permanently deleted.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Delete user and data",
+      confirmButtonColor: "#C4432B",
+    });
+    if (!result.isConfirmed) return;
+    try {
+      await adminApi.deleteUser(user.uuid);
+      await load();
+      Swal.fire({ icon: "success", title: "User and data deleted", timer: 1500, showConfirmButton: false });
+    } catch (error) {
+      Swal.fire({ icon: "error", title: "Delete failed", text: error.response?.data?.message ?? "Please try again." });
+    }
+  };
+  const formatBytes = (bytes) => {
+    if (!bytes) return "0 B";
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    return `${(bytes / 1024 ** index).toFixed(index ? 1 : 0)} ${units[index]}`;
   };
   const cards = overview
     ? [
@@ -78,6 +121,7 @@ export default function Admin() {
               <tr>
                 <th className="p-4">User</th>
                 <th className="p-4">Role</th>
+                <th className="p-4">Storage used</th>
                 <th className="p-4">Status</th>
                 <th className="p-4" />
               </tr>
@@ -90,16 +134,20 @@ export default function Admin() {
                     <small className="block text-[#8A8D89]">{user.email}</small>
                   </td>
                   <td className="p-4">{user.role}</td>
+                  <td className="p-4 font-mono text-xs">{formatBytes(user.usedStorage)}</td>
                   <td className="p-4">
                     {user.active ? "Active" : "Suspended"}
                   </td>
                   <td className="p-4">
-                    <button
-                      onClick={() => toggle(user)}
-                      className="rounded border border-[#E4E1DA] px-3 py-1.5 text-xs"
-                    >
-                      {user.active ? "Suspend" : "Activate"}
-                    </button>
+                    {user.role === "ADMIN" ? (
+                      <span className="text-xs text-[#8A8D89]">Administrator</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        <button onClick={() => toggle(user)} className="rounded border border-[#E4E1DA] px-3 py-1.5 text-xs">{user.active ? "Suspend" : "Activate"}</button>
+                        <button onClick={() => resetPassword(user)} className="inline-flex items-center gap-1 rounded border border-[#E4E1DA] px-3 py-1.5 text-xs"><KeyRound size={12} />Reset password</button>
+                        <button onClick={() => deleteUser(user)} className="inline-flex items-center gap-1 rounded border border-[#F3D3CB] px-3 py-1.5 text-xs text-[#C4432B]"><Trash2 size={12} />Delete</button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

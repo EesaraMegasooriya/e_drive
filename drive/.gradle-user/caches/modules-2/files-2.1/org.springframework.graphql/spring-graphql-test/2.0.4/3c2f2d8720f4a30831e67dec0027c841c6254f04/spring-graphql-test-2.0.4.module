@@ -1,0 +1,152 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "org.springframework.graphql",
+    "module": "spring-graphql-test",
+    "version": "2.0.4",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.4.1"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.graphql",
+          "module": "spring-graphql",
+          "version": {
+            "requires": "2.0.4"
+          }
+        },
+        {
+          "group": "com.graphql-java",
+          "module": "graphql-java",
+          "version": {
+            "requires": "25.0"
+          }
+        },
+        {
+          "group": "io.projectreactor",
+          "module": "reactor-core",
+          "version": {
+            "requires": "3.8.6"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-context",
+          "version": {
+            "requires": "7.0.8"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-test",
+          "version": {
+            "requires": "7.0.8"
+          }
+        },
+        {
+          "group": "com.jayway.jsonpath",
+          "module": "json-path",
+          "version": {
+            "requires": "2.10.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-graphql-test-2.0.4.jar",
+          "url": "spring-graphql-test-2.0.4.jar",
+          "size": 83545,
+          "sha512": "d5527eb2467c318a02ae3a60a39c726433978d9a6f1fd5b7cce0985fa1b0106be065d5b18b1d4833230142803a2c504ef4d27d26944f8d8b3334e55d86ad7d57",
+          "sha256": "3f55fa793857069c697bab089abcee838daf2f3aedaec1d6921a78ae9705700a",
+          "sha1": "c1ef7f0cae2d439d24d0a0c3688999145a426880",
+          "md5": "6d49f660061361fede45905938cd0dc5"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.graphql",
+          "module": "spring-graphql",
+          "version": {
+            "requires": "2.0.4"
+          }
+        },
+        {
+          "group": "com.graphql-java",
+          "module": "graphql-java",
+          "version": {
+            "requires": "25.0"
+          }
+        },
+        {
+          "group": "io.projectreactor",
+          "module": "reactor-core",
+          "version": {
+            "requires": "3.8.6"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-context",
+          "version": {
+            "requires": "7.0.8"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-test",
+          "version": {
+            "requires": "7.0.8"
+          }
+        },
+        {
+          "group": "com.jayway.jsonpath",
+          "module": "json-path",
+          "version": {
+            "requires": "2.10.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-graphql-test-2.0.4.jar",
+          "url": "spring-graphql-test-2.0.4.jar",
+          "size": 83545,
+          "sha512": "d5527eb2467c318a02ae3a60a39c726433978d9a6f1fd5b7cce0985fa1b0106be065d5b18b1d4833230142803a2c504ef4d27d26944f8d8b3334e55d86ad7d57",
+          "sha256": "3f55fa793857069c697bab089abcee838daf2f3aedaec1d6921a78ae9705700a",
+          "sha1": "c1ef7f0cae2d439d24d0a0c3688999145a426880",
+          "md5": "6d49f660061361fede45905938cd0dc5"
+        }
+      ]
+    }
+  ]
+}

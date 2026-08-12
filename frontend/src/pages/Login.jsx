@@ -46,7 +46,7 @@ export default function Login() {
 
     try {
       setLoading(true);
-      await login(form);
+      const response = await login(form);
 
       Swal.fire({
         icon: "success",
@@ -56,7 +56,7 @@ export default function Login() {
         showConfirmButton: false,
       });
 
-      navigate("/drive");
+      navigate(response.user?.role === "ADMIN" ? "/admin" : "/drive");
     } catch (error) {
       Swal.fire({
         icon: "error",

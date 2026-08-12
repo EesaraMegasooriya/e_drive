@@ -1,0 +1,146 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "org.springframework.boot",
+    "module": "spring-boot-flyway",
+    "version": "4.1.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.5.0"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-jdbc",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.flywaydb",
+          "module": "flyway-core",
+          "version": {
+            "requires": "12.4.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-boot-flyway-4.1.0.jar",
+          "url": "spring-boot-flyway-4.1.0.jar",
+          "size": 76566,
+          "sha512": "34c033eb4c39c6d5b2b008dd19be593bba0c2f0be20f0783109f3d31206c97405fdfdc770fedff87555333e6f671f7d4b1c3660a95287c03bf1b6cf7610f223a",
+          "sha256": "ae208fe4ff07de13340080a1533635f529dc19cf2f5c2f2ccd3bdf34578b5438",
+          "sha1": "a1420738bee6834c52cb9bf7ce66935c6ac98a75",
+          "md5": "cbf2edd4cb5aabc2bdfd8dfd199a9d55"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-jdbc",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.flywaydb",
+          "module": "flyway-core",
+          "version": {
+            "requires": "12.4.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-boot-flyway-4.1.0.jar",
+          "url": "spring-boot-flyway-4.1.0.jar",
+          "size": 76566,
+          "sha512": "34c033eb4c39c6d5b2b008dd19be593bba0c2f0be20f0783109f3d31206c97405fdfdc770fedff87555333e6f671f7d4b1c3660a95287c03bf1b6cf7610f223a",
+          "sha256": "ae208fe4ff07de13340080a1533635f529dc19cf2f5c2f2ccd3bdf34578b5438",
+          "sha1": "a1420738bee6834c52cb9bf7ce66935c6ac98a75",
+          "md5": "cbf2edd4cb5aabc2bdfd8dfd199a9d55"
+        }
+      ]
+    },
+    {
+      "name": "javadocElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "javadoc",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "spring-boot-flyway-4.1.0-javadoc.jar",
+          "url": "spring-boot-flyway-4.1.0-javadoc.jar",
+          "size": 167554,
+          "sha512": "c796a8e7706e64dddaffd33e688f5f59db8b4ef145302ced518fa61740d92dbbc44b03305bc72faf9373a18132a8c10f1082ba62a10ec67b710b3d5f8737d822",
+          "sha256": "a22280fe41e55597538c7a0e1d80979d50c06f8e977967e62b1afe0a3737989d",
+          "sha1": "9d38fc8bdf915a999db3bdcefbf4bd66debb4985",
+          "md5": "15bad07d4bdb6cfa0e47a1dad1570240"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "spring-boot-flyway-4.1.0-sources.jar",
+          "url": "spring-boot-flyway-4.1.0-sources.jar",
+          "size": 40598,
+          "sha512": "186ad2716880866f4beb07df7af7b54aadd17e26d47f71ecbdb5f09bf4eefdb1c31a88759af2be8039d662c14820c54daf57c9168b043951e337f2ef98227bb0",
+          "sha256": "ee8057797a12b32129a30f9162955153ce5ce23c2756c69e307785c2f8586723",
+          "sha1": "210c351e06fad579e9bb6cc28e31e6f0b2437778",
+          "md5": "f7b03d75da5afe209afc9b94126da5d0"
+        }
+      ]
+    }
+  ]
+}

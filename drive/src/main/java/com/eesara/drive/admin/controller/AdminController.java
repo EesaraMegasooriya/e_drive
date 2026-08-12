@@ -1,5 +1,7 @@
 package com.eesara.drive.admin.controller;
 
+import com.eesara.drive.admin.dto.AdminResetPasswordRequest;
+import com.eesara.drive.admin.service.AdminUserService;
 import com.eesara.drive.file.repository.DriveFileRepository;
 import com.eesara.drive.folder.repository.FolderRepository;
 import com.eesara.drive.share.repository.ShareLinkRepository;
@@ -7,6 +9,7 @@ import com.eesara.drive.user.entity.User;
 import com.eesara.drive.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +22,7 @@ public class AdminController {
     private final DriveFileRepository files;
     private final FolderRepository folders;
     private final ShareLinkRepository shares;
+    private final AdminUserService adminUserService;
 
     @GetMapping("/overview")
     public Map<String, Object> overview() { return Map.of("users", users.count(), "files", files.count(), "folders", folders.count(), "shares", shares.count()); }
@@ -35,5 +39,34 @@ public class AdminController {
         user.setIsActive(active); users.save(user); return ResponseEntity.noContent().build();
     }
 
-    private Map<String, Object> user(User user) { return Map.of("uuid", user.getUuid(), "name", user.getName(), "email", user.getEmail(), "role", user.getRole().name(), "active", Boolean.TRUE.equals(user.getIsActive()), "usedStorage", user.getUsedStorage()); }
+    @PutMapping("/users/{uuid}/password")
+    public ResponseEntity<Void> resetPassword(
+            @PathVariable String uuid,
+            @Valid @RequestBody AdminResetPasswordRequest request
+    ) {
+        adminUserService.resetPassword(uuid, request.getPassword());
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/users/{uuid}")
+    public ResponseEntity<Void> deleteUser(@PathVariable String uuid) {
+        adminUserService.deleteUser(uuid);
+        return ResponseEntity.noContent().build();
+    }
+
+    private Map<String, Object> user(User user) {
+        long usedStorage = files.findByOwner(user).stream()
+                .mapToLong(file -> file.getFileSize())
+                .sum();
+
+        return Map.of(
+                "uuid", user.getUuid(),
+                "name", user.getName(),
+                "email", user.getEmail(),
+                "role", user.getRole().name(),
+                "active", Boolean.TRUE.equals(user.getIsActive()),
+                "usedStorage", usedStorage,
+                "storageLimit", user.getStorageLimit()
+        );
+    }
 }

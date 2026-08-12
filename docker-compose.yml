@@ -1,0 +1,72 @@
+services:
+
+  mysql:
+    image: mysql:8.4
+    container_name: edrive-mysql
+    restart: unless-stopped
+
+    environment:
+      MYSQL_DATABASE: drive
+      MYSQL_USER: drive
+      MYSQL_PASSWORD: CHANGE_THIS_PASSWORD
+      MYSQL_ROOT_PASSWORD: CHANGE_THIS_ROOT_PASSWORD
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+    networks:
+      - edrive-network
+
+
+  backend:
+    build:
+      context: ./drive
+
+    container_name: edrive-backend
+    restart: unless-stopped
+
+    depends_on:
+      - mysql
+
+    environment:
+      DB_HOST: mysql
+      DB_DATABASE: drive
+      DB_USER: drive
+      DB_PASSWORD: CHANGE_THIS_PASSWORD
+
+      STORAGE_LOCATION: /app/uploads
+
+    volumes:
+      - /srv/drive-data/uploads:/app/uploads
+
+    expose:
+      - "8080"
+
+    networks:
+      - edrive-network
+
+
+  frontend:
+    build:
+      context: ./frontend
+
+    container_name: edrive-frontend
+    restart: unless-stopped
+
+    depends_on:
+      - backend
+
+    ports:
+      - "80:80"
+
+    networks:
+      - edrive-network
+
+
+volumes:
+  mysql_data:
+
+
+networks:
+  edrive-network:
+    driver: bridge

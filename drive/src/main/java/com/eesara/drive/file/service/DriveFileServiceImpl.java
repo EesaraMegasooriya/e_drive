@@ -11,6 +11,7 @@ import com.eesara.drive.folder.repository.FolderRepository;
 import com.eesara.drive.security.service.CurrentUserService;
 import com.eesara.drive.storage.StorageService;
 import com.eesara.drive.user.entity.User;
+import com.eesara.drive.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
@@ -31,6 +32,7 @@ public class DriveFileServiceImpl implements DriveFileService {
     private final CurrentUserService currentUserService;
     private final StorageService storageService;
     private final ShareLinkRepository shareLinkRepository;
+    private final UserRepository userRepository;
 
     @Override
     public UploadFileResponse upload(
@@ -102,6 +104,8 @@ public class DriveFileServiceImpl implements DriveFileService {
                 .build();
 
         driveFileRepository.save(driveFile);
+        owner.setUsedStorage(owner.getUsedStorage() + file.getSize());
+        userRepository.save(owner);
 
         return UploadFileResponse.builder()
                 .uuid(driveFile.getUuid())
@@ -231,6 +235,8 @@ public void deleteFile(String fileUuid) throws IOException {
 
     // Delete database record
     driveFileRepository.delete(driveFile);
+    owner.setUsedStorage(Math.max(0L, owner.getUsedStorage() - driveFile.getFileSize()));
+    userRepository.save(owner);
 }
 
     @Override

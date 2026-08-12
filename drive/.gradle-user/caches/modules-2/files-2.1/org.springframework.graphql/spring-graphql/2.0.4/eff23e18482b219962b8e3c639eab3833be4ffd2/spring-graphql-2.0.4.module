@@ -1,0 +1,117 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "org.springframework.graphql",
+    "module": "spring-graphql",
+    "version": "2.0.4",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.4.1"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "com.graphql-java",
+          "module": "graphql-java",
+          "version": {
+            "requires": "25.0"
+          }
+        },
+        {
+          "group": "io.projectreactor",
+          "module": "reactor-core",
+          "version": {
+            "requires": "3.8.6"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-context",
+          "version": {
+            "requires": "7.0.8"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-graphql-2.0.4.jar",
+          "url": "spring-graphql-2.0.4.jar",
+          "size": 716247,
+          "sha512": "ff851936b00e8ea9ae5ec39c2488bf574a23fff983c50d0700a96c47a585466628aa118cf8ed88213f9387b4e1cd0d550d30b712c727a84fa98707e3e078331e",
+          "sha256": "d39aecd0f062d41ae90ce868bd7050a945c575dced0118a06bf2ef2f48b55f09",
+          "sha1": "7526a45f11001712d754124db03003bf70ff4f6e",
+          "md5": "bdf57bc146df3b9cb329224bf7dacc35"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.micrometer",
+          "module": "context-propagation",
+          "version": {
+            "requires": "1.2.1"
+          }
+        },
+        {
+          "group": "com.graphql-java",
+          "module": "graphql-java",
+          "version": {
+            "requires": "25.0"
+          }
+        },
+        {
+          "group": "io.projectreactor",
+          "module": "reactor-core",
+          "version": {
+            "requires": "3.8.6"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-context",
+          "version": {
+            "requires": "7.0.8"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-graphql-2.0.4.jar",
+          "url": "spring-graphql-2.0.4.jar",
+          "size": 716247,
+          "sha512": "ff851936b00e8ea9ae5ec39c2488bf574a23fff983c50d0700a96c47a585466628aa118cf8ed88213f9387b4e1cd0d550d30b712c727a84fa98707e3e078331e",
+          "sha256": "d39aecd0f062d41ae90ce868bd7050a945c575dced0118a06bf2ef2f48b55f09",
+          "sha1": "7526a45f11001712d754124db03003bf70ff4f6e",
+          "md5": "bdf57bc146df3b9cb329224bf7dacc35"
+        }
+      ]
+    }
+  ]
+}

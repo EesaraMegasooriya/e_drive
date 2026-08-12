@@ -10,6 +10,8 @@ import Admin from "../pages/Admin";
 import Drive from "../pages/Drive";
 import NotFound from "../pages/NotFound";
 
+import TestPage from "../components/TestPage";
+
 import PrivateRoute from "./PrivateRoute";
 
 export default function AppRoutes() {
@@ -22,10 +24,17 @@ export default function AppRoutes() {
           element={<Navigate to="/drive" replace />}
         />
 
+
+        <Route
+          path="/test"
+          element={<TestPage />}
+        />
+
         <Route
           path="/login"
           element={<Login />}
         />
+
 
         <Route
           path="/register"
@@ -48,7 +57,7 @@ export default function AppRoutes() {
         element={<Drive />}
     />
     <Route path="/profile" element={<Profile />} />
-    <Route path="/admin" element={<Admin />} />
+    <Route path="/admin" element={<PrivateRoute requireAdmin><Admin /></PrivateRoute>} />
 
 </Route>
 

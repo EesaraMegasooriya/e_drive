@@ -1,0 +1,96 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.graphql-java",
+    "module": "java-dataloader",
+    "version": "6.0.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.11.1"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 11,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.reactivestreams",
+          "module": "reactive-streams",
+          "version": {
+            "requires": "1.0.3"
+          }
+        },
+        {
+          "group": "org.jspecify",
+          "module": "jspecify",
+          "version": {
+            "requires": "1.0.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "java-dataloader-6.0.0.jar",
+          "url": "java-dataloader-6.0.0.jar",
+          "size": 107378,
+          "sha512": "ae86b2fd6d3b10b4732152b963b03ffeaa370b62158d80c303c71459c0a530fa890743cafb11e82853967463b83b9e2802fc35afc0f9e4d728ea7d0e81836a3b",
+          "sha256": "1c9ef058308381312c350f943d185c9e451b0eee0acab74b7b80fc4f56625501",
+          "sha1": "83ed8dd0b71d369543ae5c4c78bbdba23e410bd6",
+          "md5": "e766023c816e2066317c02d168197446"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 11,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.reactivestreams",
+          "module": "reactive-streams",
+          "version": {
+            "requires": "1.0.3"
+          }
+        },
+        {
+          "group": "org.jspecify",
+          "module": "jspecify",
+          "version": {
+            "requires": "1.0.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "java-dataloader-6.0.0.jar",
+          "url": "java-dataloader-6.0.0.jar",
+          "size": 107378,
+          "sha512": "ae86b2fd6d3b10b4732152b963b03ffeaa370b62158d80c303c71459c0a530fa890743cafb11e82853967463b83b9e2802fc35afc0f9e4d728ea7d0e81836a3b",
+          "sha256": "1c9ef058308381312c350f943d185c9e451b0eee0acab74b7b80fc4f56625501",
+          "sha1": "83ed8dd0b71d369543ae5c4c78bbdba23e410bd6",
+          "md5": "e766023c816e2066317c02d168197446"
+        }
+      ]
+    }
+  ]
+}

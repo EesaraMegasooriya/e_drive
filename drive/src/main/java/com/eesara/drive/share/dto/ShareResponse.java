@@ -14,4 +14,6 @@ private String shareUrl;
 
 private String assetUrl;
 
+private String contentsUrl;
+
 }

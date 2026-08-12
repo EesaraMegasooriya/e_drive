@@ -1,0 +1,160 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "org.springframework.boot",
+    "module": "spring-boot-starter-graphql",
+    "version": "4.1.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.5.0"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter-jackson",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-reactor",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-graphql",
+          "version": {
+            "requires": "4.1.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-boot-starter-graphql-4.1.0.jar",
+          "url": "spring-boot-starter-graphql-4.1.0.jar",
+          "size": 4740,
+          "sha512": "403747a7804dd3782be49b9335dc06161b2f2ddf7c76fe43025202ef9a3eb1546caf52a20c27b0edbd20a2cb975c1e89d1032f768d82e2dd4f9bcdaa81d89942",
+          "sha256": "7e1ee27a1e274a99b6beb4ac0dbbb978a942a7b58e4f4e76eb4cffe10ed1d74b",
+          "sha1": "5c8daea03bda34c0095343fc6689b7f71a25a58c",
+          "md5": "a151d8a84c35cb233e0c38696ec1ff6a"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter-jackson",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-reactor",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-graphql",
+          "version": {
+            "requires": "4.1.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-boot-starter-graphql-4.1.0.jar",
+          "url": "spring-boot-starter-graphql-4.1.0.jar",
+          "size": 4740,
+          "sha512": "403747a7804dd3782be49b9335dc06161b2f2ddf7c76fe43025202ef9a3eb1546caf52a20c27b0edbd20a2cb975c1e89d1032f768d82e2dd4f9bcdaa81d89942",
+          "sha256": "7e1ee27a1e274a99b6beb4ac0dbbb978a942a7b58e4f4e76eb4cffe10ed1d74b",
+          "sha1": "5c8daea03bda34c0095343fc6689b7f71a25a58c",
+          "md5": "a151d8a84c35cb233e0c38696ec1ff6a"
+        }
+      ]
+    },
+    {
+      "name": "javadocElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "javadoc",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "spring-boot-starter-graphql-4.1.0-javadoc.jar",
+          "url": "spring-boot-starter-graphql-4.1.0-javadoc.jar",
+          "size": 4740,
+          "sha512": "403747a7804dd3782be49b9335dc06161b2f2ddf7c76fe43025202ef9a3eb1546caf52a20c27b0edbd20a2cb975c1e89d1032f768d82e2dd4f9bcdaa81d89942",
+          "sha256": "7e1ee27a1e274a99b6beb4ac0dbbb978a942a7b58e4f4e76eb4cffe10ed1d74b",
+          "sha1": "5c8daea03bda34c0095343fc6689b7f71a25a58c",
+          "md5": "a151d8a84c35cb233e0c38696ec1ff6a"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "spring-boot-starter-graphql-4.1.0-sources.jar",
+          "url": "spring-boot-starter-graphql-4.1.0-sources.jar",
+          "size": 4740,
+          "sha512": "403747a7804dd3782be49b9335dc06161b2f2ddf7c76fe43025202ef9a3eb1546caf52a20c27b0edbd20a2cb975c1e89d1032f768d82e2dd4f9bcdaa81d89942",
+          "sha256": "7e1ee27a1e274a99b6beb4ac0dbbb978a942a7b58e4f4e76eb4cffe10ed1d74b",
+          "sha1": "5c8daea03bda34c0095343fc6689b7f71a25a58c",
+          "md5": "a151d8a84c35cb233e0c38696ec1ff6a"
+        }
+      ]
+    }
+  ]
+}

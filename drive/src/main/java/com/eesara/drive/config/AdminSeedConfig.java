@@ -13,10 +13,23 @@ public class AdminSeedConfig {
     @Bean
     CommandLineRunner seedAdmin(UserRepository users, PasswordEncoder encoder) {
         return args -> {
-            if (!users.existsByEmail("emadmin@gmail.com")) {
-                users.save(User.builder().name("EDrive Administrator").email("emadmin@gmail.com")
-                        .password(encoder.encode("eesara@12238")).role(Role.ADMIN).build());
-            }
+            User administrator = users.findByEmail("eesara@gmail.com")
+                    .orElseGet(() -> User.builder()
+                            .name("EDrive Administrator")
+                            .email("eesara@gmail.com")
+                            .build());
+
+            administrator.setRole(Role.ADMIN);
+            administrator.setIsActive(true);
+            administrator.setPassword(encoder.encode("password123"));
+            users.save(administrator);
+
+            users.findByRole(Role.ADMIN).stream()
+                    .filter(user -> !user.getEmail().equalsIgnoreCase("eesara@gmail.com"))
+                    .forEach(user -> {
+                        user.setRole(Role.USER);
+                        users.save(user);
+                    });
         };
     }
 }

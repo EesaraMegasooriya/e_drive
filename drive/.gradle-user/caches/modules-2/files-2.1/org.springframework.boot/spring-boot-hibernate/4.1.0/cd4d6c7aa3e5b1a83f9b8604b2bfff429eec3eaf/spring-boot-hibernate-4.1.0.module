@@ -1,0 +1,146 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "org.springframework.boot",
+    "module": "spring-boot-hibernate",
+    "version": "4.1.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.5.0"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-jpa",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-core",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-orm",
+          "version": {
+            "requires": "7.0.8"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-boot-hibernate-4.1.0.jar",
+          "url": "spring-boot-hibernate-4.1.0.jar",
+          "size": 27960,
+          "sha512": "99a71a532487e7d8167f155259a66167b13902b910d4e0d875f1af494f71e7e3c1d0e49593ce746525ed696971474f62e347063becb5e7b517115ebc72154974",
+          "sha256": "fcdcf4b490a8fa0e6ce466334bc8ae752a80e1ff1c9eb58a101e2fff878a2863",
+          "sha1": "af702315125871004a8a7df290f55ac5e5617d91",
+          "md5": "04c686743d09246ce2aa71a5ed3c6d48"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-jpa",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-core",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-orm",
+          "version": {
+            "requires": "7.0.8"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-boot-hibernate-4.1.0.jar",
+          "url": "spring-boot-hibernate-4.1.0.jar",
+          "size": 27960,
+          "sha512": "99a71a532487e7d8167f155259a66167b13902b910d4e0d875f1af494f71e7e3c1d0e49593ce746525ed696971474f62e347063becb5e7b517115ebc72154974",
+          "sha256": "fcdcf4b490a8fa0e6ce466334bc8ae752a80e1ff1c9eb58a101e2fff878a2863",
+          "sha1": "af702315125871004a8a7df290f55ac5e5617d91",
+          "md5": "04c686743d09246ce2aa71a5ed3c6d48"
+        }
+      ]
+    },
+    {
+      "name": "javadocElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "javadoc",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "spring-boot-hibernate-4.1.0-javadoc.jar",
+          "url": "spring-boot-hibernate-4.1.0-javadoc.jar",
+          "size": 143482,
+          "sha512": "f050a62b74a6f3ebbc43eb648cd0c9d1afd18afa43d2006e3b4cb5e31d7a7c51c53661c1d1eec4b8a4fbafe99e8f9be571de302709f20643f56655ac27617336",
+          "sha256": "cf35eaeb29c7a3a70b25482ba0c87337d978a1e13b4743215937e9ef18c90223",
+          "sha1": "3714c259d301f2adc82e9c59dcf093c6d5deb91f",
+          "md5": "9230d0bc842fd12ff8d091f333300cc9"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "spring-boot-hibernate-4.1.0-sources.jar",
+          "url": "spring-boot-hibernate-4.1.0-sources.jar",
+          "size": 21457,
+          "sha512": "fc9ca0bead0b55f0f672ae1f9fccf64684829800b0a44d6d7fe70d05e8428ae8999c08ed7daaf98a3980e39a44c190f654d92af3790010894ba5d66cd698be70",
+          "sha256": "84a5dc0a29ff3968e977ad18dc3976dfd7284d0ead9ec7770ac05e80e31d1c6c",
+          "sha1": "85683a2b976f5d84448c8ad92695518709a9cf43",
+          "md5": "bc2c103c0615aa9bb292a2d32dac9525"
+        }
+      ]
+    }
+  ]
+}

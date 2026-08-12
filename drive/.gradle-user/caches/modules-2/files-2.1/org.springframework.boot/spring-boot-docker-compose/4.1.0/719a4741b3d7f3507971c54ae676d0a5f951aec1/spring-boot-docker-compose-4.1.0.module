@@ -1,0 +1,125 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "org.springframework.boot",
+    "module": "spring-boot-docker-compose",
+    "version": "4.1.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.5.0"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-autoconfigure",
+          "version": {
+            "requires": "4.1.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-boot-docker-compose-4.1.0.jar",
+          "url": "spring-boot-docker-compose-4.1.0.jar",
+          "size": 128189,
+          "sha512": "a4cac3cf8298c7eb6cc8d6c148f73518ed691cc85ac0ca17634c7e3223228393936a62a229e1b93de9d22feadf1f5679c1c6460a7737201faaa7d15be20a9397",
+          "sha256": "39c08f3dd36253c7ebdbe3ec2e4801e5e8871e90c5b5f72a843f65d54f8dfe2e",
+          "sha1": "ed8f05c8a593b1a498d16f873de5a7a99f638072",
+          "md5": "111e70f0885e13f462008f3ac071de5d"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "tools.jackson.core",
+          "module": "jackson-databind",
+          "version": {
+            "requires": "3.1.4"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-autoconfigure",
+          "version": {
+            "requires": "4.1.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-boot-docker-compose-4.1.0.jar",
+          "url": "spring-boot-docker-compose-4.1.0.jar",
+          "size": 128189,
+          "sha512": "a4cac3cf8298c7eb6cc8d6c148f73518ed691cc85ac0ca17634c7e3223228393936a62a229e1b93de9d22feadf1f5679c1c6460a7737201faaa7d15be20a9397",
+          "sha256": "39c08f3dd36253c7ebdbe3ec2e4801e5e8871e90c5b5f72a843f65d54f8dfe2e",
+          "sha1": "ed8f05c8a593b1a498d16f873de5a7a99f638072",
+          "md5": "111e70f0885e13f462008f3ac071de5d"
+        }
+      ]
+    },
+    {
+      "name": "javadocElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "javadoc",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "spring-boot-docker-compose-4.1.0-javadoc.jar",
+          "url": "spring-boot-docker-compose-4.1.0-javadoc.jar",
+          "size": 211933,
+          "sha512": "5ab2f3e9c5e2c8c8a5ba7326e44e89f47135876e04832881b1339dec21f178d802091041d3a6afd0ec65d096b9f33cf5bdc36de138227d003e2fa1dc156d29b2",
+          "sha256": "aeecc1d6e48e47631c05311bbddb12887bca50019144b5ef0b5a25cc4b597c75",
+          "sha1": "63293a152a7e3129b49a91e940cb9223790090ec",
+          "md5": "2b9291c9e4bd7b1854e3916f701fadbb"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "spring-boot-docker-compose-4.1.0-sources.jar",
+          "url": "spring-boot-docker-compose-4.1.0-sources.jar",
+          "size": 69368,
+          "sha512": "64a44be115fe3ddae4dec7a8012bcb81f250e8524a568de08789d3637c56b5aea2e2b9ac9afab9f02e7ac890923184645e0989f1071ad715c34b7dc0e075a2f9",
+          "sha256": "d379c0c0fa99ca8b91e967ac1deb4574a81eb5aa8fb10aafab8bf36803f3b085",
+          "sha1": "50178ffd0b3bb2b49817bba89607405f7e2d492c",
+          "md5": "9a951dad917732b862d48549792b0a4a"
+        }
+      ]
+    }
+  ]
+}

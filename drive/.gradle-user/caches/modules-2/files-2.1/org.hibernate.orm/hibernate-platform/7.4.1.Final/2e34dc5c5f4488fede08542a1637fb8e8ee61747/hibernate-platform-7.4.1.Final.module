@@ -1,0 +1,708 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "org.hibernate.orm",
+    "module": "hibernate-platform",
+    "version": "7.4.1.Final",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.5.0"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "platform",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencyConstraints": [
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-core",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-core",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-testing",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-testing",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-envers",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-envers",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-spatial",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-spatial",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-vector",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-vector",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-community-dialects",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-community-dialects",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-scan-jandex",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-agroal",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-agroal",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-c3p0",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-c3p0",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-hikaricp",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-hikaricp",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-jcache",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-jcache",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-micrometer",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-micrometer",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-graalvm",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-graalvm",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-processor",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-processor",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-gradle-plugin",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-maven-plugin",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-ant",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-ant",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-assistant",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-assistant",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-reveng",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-reveng",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-jfr",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-jfr",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.models",
+          "module": "hibernate-models",
+          "version": {
+            "requires": "1.1.1"
+          }
+        },
+        {
+          "group": "jakarta.persistence",
+          "module": "jakarta.persistence-api",
+          "version": {
+            "requires": "3.2.0"
+          }
+        },
+        {
+          "group": "jakarta.transaction",
+          "module": "jakarta.transaction-api",
+          "version": {
+            "requires": "2.0.1"
+          }
+        },
+        {
+          "group": "jakarta.data",
+          "module": "jakarta.data-api",
+          "version": {
+            "requires": "1.0.1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "platform",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencyConstraints": [
+        {
+          "group": "org.antlr",
+          "module": "antlr4-runtime",
+          "version": {
+            "requires": "4.13.2"
+          }
+        },
+        {
+          "group": "org.jboss.logging",
+          "module": "jboss-logging",
+          "version": {
+            "requires": "3.6.1.Final"
+          }
+        },
+        {
+          "group": "net.bytebuddy",
+          "module": "byte-buddy",
+          "version": {
+            "requires": "1.18.8"
+          }
+        },
+        {
+          "group": "net.bytebuddy",
+          "module": "byte-buddy-agent",
+          "version": {
+            "requires": "1.18.8"
+          }
+        },
+        {
+          "group": "io.smallrye",
+          "module": "jandex",
+          "version": {
+            "requires": "3.3.2"
+          }
+        },
+        {
+          "group": "org.glassfish.jaxb",
+          "module": "jaxb-runtime",
+          "version": {
+            "requires": "4.0.7"
+          }
+        },
+        {
+          "group": "jakarta.xml.bind",
+          "module": "jakarta.xml.bind-api",
+          "version": {
+            "requires": "4.0.4"
+          }
+        },
+        {
+          "group": "jakarta.inject",
+          "module": "jakarta.inject-api",
+          "version": {
+            "requires": "2.0.1"
+          }
+        },
+        {
+          "group": "io.agroal",
+          "module": "agroal-api",
+          "version": {
+            "requires": "3.0.1"
+          }
+        },
+        {
+          "group": "io.agroal",
+          "module": "agroal-pool",
+          "version": {
+            "requires": "3.0.1"
+          }
+        },
+        {
+          "group": "com.mchange",
+          "module": "c3p0",
+          "version": {
+            "requires": "0.12.0"
+          }
+        },
+        {
+          "group": "com.zaxxer",
+          "module": "HikariCP",
+          "version": {
+            "requires": "7.0.2"
+          }
+        },
+        {
+          "group": "javax.cache",
+          "module": "cache-api",
+          "version": {
+            "requires": "1.1.1"
+          }
+        },
+        {
+          "group": "io.micrometer",
+          "module": "micrometer-core",
+          "version": {
+            "requires": "1.16.0"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-core",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-core",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-testing",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-testing",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-envers",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-envers",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-spatial",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-spatial",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-vector",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-vector",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-community-dialects",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-community-dialects",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-scan-jandex",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-agroal",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-agroal",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-c3p0",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-c3p0",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-hikaricp",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-hikaricp",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-jcache",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-jcache",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-micrometer",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-micrometer",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-graalvm",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-graalvm",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-processor",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-processor",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-gradle-plugin",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-maven-plugin",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-ant",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-ant",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-assistant",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-assistant",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-reveng",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-reveng",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.orm",
+          "module": "hibernate-jfr",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-jfr",
+          "version": {
+            "requires": "7.4.1.Final"
+          }
+        },
+        {
+          "group": "org.hibernate.models",
+          "module": "hibernate-models",
+          "version": {
+            "requires": "1.1.1"
+          }
+        },
+        {
+          "group": "jakarta.persistence",
+          "module": "jakarta.persistence-api",
+          "version": {
+            "requires": "3.2.0"
+          }
+        },
+        {
+          "group": "jakarta.transaction",
+          "module": "jakarta.transaction-api",
+          "version": {
+            "requires": "2.0.1"
+          }
+        },
+        {
+          "group": "jakarta.data",
+          "module": "jakarta.data-api",
+          "version": {
+            "requires": "1.0.1"
+          }
+        }
+      ]
+    }
+  ]
+}
