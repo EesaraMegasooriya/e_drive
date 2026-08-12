@@ -1,4 +1,4 @@
-import axios from "./axios";
+import axios, { AUTH_TOKEN_STORAGE_KEY, getStoredToken } from "./axios";
 
 const authApi = {
   login: async (credentials) => {
@@ -6,7 +6,7 @@ const authApi = {
 
     // Save JWT if available
     if (response.data.token) {
-      localStorage.setItem("token", response.data.token);
+      localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, response.data.token);
     }
 
     // Save user if available
@@ -38,12 +38,12 @@ const authApi = {
   changePassword: async (data) => axios.put("/profile/password", data),
 
   logout: () => {
-    localStorage.removeItem("token");
+    localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
     localStorage.removeItem("user");
   },
 
   getToken: () => {
-    return localStorage.getItem("token");
+    return getStoredToken();
   },
 
   getUser: () => {
@@ -53,7 +53,7 @@ const authApi = {
   },
 
   isAuthenticated: () => {
-    return !!localStorage.getItem("token");
+    return !!getStoredToken();
   },
 };
 
