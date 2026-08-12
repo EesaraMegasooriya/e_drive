@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosInstance = axios.create({
-  baseURL: "http://localhost:8080/api",
+  baseURL: "/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -27,7 +27,7 @@ axiosInstance.interceptors.response.use(
   (response) => response,
 
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !error.config?.skipAuthRedirect) {
       localStorage.removeItem("token");
 
       // Prevent redirect loop if already on login page

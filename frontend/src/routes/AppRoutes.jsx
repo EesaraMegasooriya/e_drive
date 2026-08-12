@@ -9,8 +9,7 @@ import Profile from "../pages/Profile";
 import Admin from "../pages/Admin";
 import Drive from "../pages/Drive";
 import NotFound from "../pages/NotFound";
-
-import TestPage from "../components/TestPage";
+import PublicFolderShare from "../pages/PublicFolderShare";
 
 import PrivateRoute from "./PrivateRoute";
 
@@ -25,10 +24,7 @@ export default function AppRoutes() {
         />
 
 
-        <Route
-          path="/test"
-          element={<TestPage />}
-        />
+        <Route path="/share/folder/:token" element={<PublicFolderShare />} />
 
         <Route
           path="/login"

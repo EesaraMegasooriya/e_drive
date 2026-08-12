@@ -388,16 +388,16 @@ export default function Drive() {
 
       const result = await Swal.fire({
         title: "Share this folder",
-        text: "This API link returns an array of every file in the folder, including nested folders.",
+        text: "Anyone with this link can browse and download the shared folder.",
         input: "text",
-        inputValue: share.contentsUrl,
-        inputAttributes: { readOnly: true, "aria-label": "Folder contents API URL" },
+        inputValue: share.shareUrl,
+        inputAttributes: { readOnly: true, "aria-label": "Folder share URL" },
         showCancelButton: true,
-        confirmButtonText: "Copy API link",
+        confirmButtonText: "Copy share link",
       });
 
       if (result.isConfirmed) {
-        await copyText(share.contentsUrl, "Folder API link copied");
+        await copyText(share.shareUrl, "Folder share link copied");
       }
     } catch (error) {
       Swal.fire({ icon: "error", title: "Couldn't create a folder share link", text: error.response?.data?.message ?? "Please try again." });
@@ -1116,12 +1116,12 @@ function FolderDetail({ folder, share, onCopy, onShare, onRename, onDelete }) {
         <p className="text-sm text-[#8A8D89]">Double-click the folder to open it.</p>
       </div>
 
-      {share?.contentsUrl && (
+      {share?.shareUrl && (
         <div className="rounded-lg border border-[#B9D2CD] bg-[#EEF4F2] p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#1F5C52]">Folder contents API</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#1F5C52]">Public folder link</p>
           <div className="flex items-center gap-2">
-            <input readOnly value={share.contentsUrl} className="w-full min-w-0 truncate rounded border border-[#D8D4CA] bg-white px-2 py-1.5 font-mono text-xs text-[#5B5F5C]" />
-            <button onClick={() => onCopy(share.contentsUrl, "Folder API link copied")} aria-label="Copy folder API link" className="shrink-0 rounded border border-[#D8D4CA] p-1.5 text-[#5B5F5C] hover:bg-[#F0EEE7]"><Copy size={14} /></button>
+            <input readOnly value={share.shareUrl} className="w-full min-w-0 truncate rounded border border-[#D8D4CA] bg-white px-2 py-1.5 font-mono text-xs text-[#5B5F5C]" />
+            <button onClick={() => onCopy(share.shareUrl, "Folder share link copied")} aria-label="Copy folder share link" className="shrink-0 rounded border border-[#D8D4CA] p-1.5 text-[#5B5F5C] hover:bg-[#F0EEE7]"><Copy size={14} /></button>
           </div>
         </div>
       )}

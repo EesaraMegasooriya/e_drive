@@ -40,6 +40,9 @@ public class ShareServiceImpl implements ShareService {
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
 
+    @Value("${app.frontend-url:http://localhost:5173}")
+    private String frontendUrl;
+
     @Override
     public ShareResponse createShare(CreateShareRequest request) {
 
@@ -74,7 +77,7 @@ public class ShareServiceImpl implements ShareService {
                 return ShareResponse.builder()
                         .uuid(share.getUuid())
                         .token(share.getToken())
-                        .shareUrl(baseUrl + "/share/" + share.getToken())
+                        .shareUrl(fileShareUrl(share.getToken()))
                         .assetUrl(
                                 baseUrl +
                                         "/api/public/assets/" +
@@ -107,7 +110,7 @@ public class ShareServiceImpl implements ShareService {
                 return ShareResponse.builder()
                         .uuid(share.getUuid())
                         .token(share.getToken())
-                        .shareUrl(baseUrl + "/share/" + share.getToken())
+                        .shareUrl(folderShareUrl(share.getToken()))
                         .assetUrl(null)
                         .contentsUrl(folderContentsUrl(share.getToken()))
                         .build();
@@ -122,7 +125,9 @@ public class ShareServiceImpl implements ShareService {
                 ShareResponse.builder()
                         .uuid(share.getUuid())
                         .token(share.getToken())
-                        .shareUrl(baseUrl + "/share/" + share.getToken());
+                        .shareUrl(share.getType() == ShareType.FOLDER
+                                ? folderShareUrl(share.getToken())
+                                : fileShareUrl(share.getToken()));
 
         if (share.getType() == ShareType.FILE) {
 
@@ -362,6 +367,14 @@ public class ShareServiceImpl implements ShareService {
 
     private String folderContentsUrl(String token) {
         return baseUrl + "/api/public/folders/" + token;
+    }
+
+    private String folderShareUrl(String token) {
+        return frontendUrl.replaceAll("/$", "") + "/share/folder/" + token;
+    }
+
+    private String fileShareUrl(String token) {
+        return frontendUrl.replaceAll("/$", "") + "/share/" + token;
     }
 
     private String folderAssetUrl(String token, DriveFile file) {

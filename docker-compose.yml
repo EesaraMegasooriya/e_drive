@@ -34,6 +34,9 @@ services:
       DB_USER: drive
       DB_PASSWORD: CHANGE_THIS_PASSWORD
 
+      APP_BASE_URL: https://drive.eesara.com
+      APP_FRONTEND_URL: https://drive.eesara.com
+
       STORAGE_LOCATION: /app/uploads
 
     volumes:
