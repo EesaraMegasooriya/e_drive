@@ -153,6 +153,7 @@ public class DriveFileServiceImpl implements DriveFileService {
         }
 
         return files.stream()
+                .filter(file -> !Boolean.TRUE.equals(file.getDeleted()))
                 .map(this::toFileResponse)
                 .toList();
     }

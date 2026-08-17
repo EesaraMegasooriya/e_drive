@@ -7,7 +7,10 @@ import com.eesara.drive.folder.dto.RenameFolderRequest;
 import com.eesara.drive.folder.entity.Folder;
 import com.eesara.drive.folder.repository.FolderRepository;
 import com.eesara.drive.security.service.CurrentUserService;
+import com.eesara.drive.share.repository.ShareLinkRepository;
+import com.eesara.drive.storage.StorageService;
 import com.eesara.drive.user.entity.User;
+import com.eesara.drive.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +23,9 @@ public class FolderServiceImpl implements FolderService {
     private final FolderRepository folderRepository;
     private final DriveFileRepository driveFileRepository;
     private final CurrentUserService currentUserService;
+    private final ShareLinkRepository shareLinkRepository;
+    private final StorageService storageService;
+    private final UserRepository userRepository;
 
     @Override
     public FolderResponse createFolder(CreateFolderRequest request) {
@@ -91,6 +97,7 @@ public class FolderServiceImpl implements FolderService {
         }
 
         return folders.stream()
+                .filter(folder -> !Boolean.TRUE.equals(folder.getIsDeleted()))
                 .map(this::toResponse)
                 .toList();
     }
@@ -176,17 +183,32 @@ public void deleteFolder(String folderUuid) {
     ).orElseThrow(() ->
             new RuntimeException("Folder not found"));
 
-    deleteRecursively(folder);
+    long removedBytes = deleteRecursively(folder);
+    owner.setUsedStorage(Math.max(0L, owner.getUsedStorage() - removedBytes));
+    userRepository.save(owner);
 }
-private void deleteRecursively(Folder folder) {
+private long deleteRecursively(Folder folder) {
 
-    for (Folder child : folder.getChildren()) {
-        deleteRecursively(child);
+    long removedBytes = 0L;
+
+    for (Folder child : folderRepository.findByParent(folder)) {
+        removedBytes += deleteRecursively(child);
     }
 
-    folder.setIsDeleted(true);
+    for (var file : driveFileRepository.findByFolder(folder)) {
+        shareLinkRepository.deleteAllByFile(file);
+        try {
+            storageService.delete(file.getStoragePath());
+        } catch (java.io.IOException exception) {
+            throw new RuntimeException("Unable to delete stored file", exception);
+        }
+        removedBytes += file.getFileSize();
+        driveFileRepository.delete(file);
+    }
 
-    folderRepository.save(folder);
+    shareLinkRepository.deleteAllByFolder(folder);
+    folderRepository.delete(folder);
+    return removedBytes;
 }
 private FolderResponse toResponse(Folder folder) {
 

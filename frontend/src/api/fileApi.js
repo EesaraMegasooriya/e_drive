@@ -35,7 +35,9 @@ const fileApi = {
     });
     const { uploadId, chunkSize } = init.data;
     let offset = Math.min(Number(init.data.offset) || 0, file.size);
+    const initialOffset = offset;
     localStorage.setItem(storageKey, uploadId);
+    options.onUploadProgress?.({ loaded: offset, total: file.size, transferred: 0 });
 
     while (offset < file.size) {
       const chunk = file.slice(offset, Math.min(offset + chunkSize, file.size));
@@ -45,7 +47,7 @@ const fileApi = {
         params: { offset }, signal: options.signal,
       });
       offset = Number(response.data.offset);
-      options.onUploadProgress?.({ loaded: offset, total: file.size });
+      options.onUploadProgress?.({ loaded: offset, total: file.size, transferred: offset - initialOffset });
     }
 
     const response = await axios.post(`/files/upload/resumable/${uploadId}/complete`, null, {

@@ -29,4 +29,8 @@ public interface ShareLinkRepository extends JpaRepository<ShareLink, Long> {
     @Modifying
     @Transactional
     void deleteAllByFile(DriveFile file);
+
+    @Modifying
+    @Transactional
+    void deleteAllByFolder(Folder folder);
 }

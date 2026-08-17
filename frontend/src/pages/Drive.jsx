@@ -53,6 +53,15 @@ function formatBytes(bytes) {
   return `${(mb / 1024).toFixed(2)} GB`;
 }
 
+function formatDuration(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "Estimating…";
+  if (seconds < 60) return `${Math.max(1, Math.ceil(seconds))}s remaining`;
+  const minutes = Math.ceil(seconds / 60);
+  if (minutes < 60) return `${minutes}m remaining`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m remaining`;
+}
+
 function formatDate(dateStr) {
   const d = new Date(dateStr);
   return d.toLocaleDateString(undefined, {
@@ -161,13 +170,15 @@ export default function Drive() {
     }
 
     let cancelled = false;
+    let objectUrl = null;
 
     const loadAsset = async () => {
       try {
-        const asset = await shareApi.getFileUrl(selectedFile.uuid);
+        const response = await fileApi.downloadFile(selectedFile.uuid);
+        objectUrl = URL.createObjectURL(response.data);
 
         if (!cancelled) {
-          setAssetUrl(asset.url);
+          setAssetUrl(objectUrl);
         }
       } catch {
         if (!cancelled) {
@@ -180,6 +191,7 @@ export default function Drive() {
 
     return () => {
       cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [selectedFile]);
 
@@ -261,7 +273,13 @@ export default function Drive() {
   const uploadFile = async (file, folderUuid) => {
     if (!file) return;
 
+    if (file.size > 15 * 1024 ** 3) {
+      toast.fire({ icon: "error", title: `${file.name} exceeds the 15 GB limit` });
+      return false;
+    }
+
     const id = uid();
+    const startedAt = Date.now();
     const controller =
       typeof AbortController !== "undefined" ? new AbortController() : null;
 
@@ -277,6 +295,8 @@ export default function Drive() {
         controller,
         file,
         folderUuid,
+        speed: 0,
+        etaSeconds: null,
       },
     ]);
 
@@ -289,7 +309,14 @@ export default function Drive() {
         onUploadProgress: (evt) => {
           if (!evt?.total) return;
           const pct = Math.round((evt.loaded / evt.total) * 100);
-          patchUpload(id, { progress: pct });
+          const transferred = evt.transferred ?? evt.loaded;
+          const elapsedSeconds = Math.max(0.1, (Date.now() - startedAt) / 1000);
+          const speed = transferred / elapsedSeconds;
+          patchUpload(id, {
+            progress: pct,
+            speed,
+            etaSeconds: speed > 0 ? (evt.total - evt.loaded) / speed : null,
+          });
         },
       });
 
@@ -1317,9 +1344,10 @@ function UploadProgressPanel({ uploads, onCancel, onDismiss, onRetry }) {
                         style={{ width: `${Math.max(u.progress, 4)}%` }}
                       />
                     </div>
-                    <p className="mt-1 text-right font-mono text-[11px] text-[#8A8D89]">
-                      {u.progress}%
-                    </p>
+                    <div className="mt-1 flex justify-between gap-2 font-mono text-[11px] text-[#8A8D89]">
+                      <span>{u.speed > 0 ? `${formatBytes(u.speed)}/s · ${formatDuration(u.etaSeconds)}` : "Estimating…"}</span>
+                      <span>{u.progress}%</span>
+                    </div>
                   </div>
                 )}
 

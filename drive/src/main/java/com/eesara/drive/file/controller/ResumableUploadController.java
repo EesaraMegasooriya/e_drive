@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,11 +31,17 @@ public class ResumableUploadController {
     private final CurrentUserService currentUserService;
     private final StorageProperties storageProperties;
 
+    @Value("${app.upload.max-file-size-bytes:16106127360}")
+    private long maximumFileSize;
+
     @PostMapping("/init")
     public Map<String, Object> initialize(@RequestParam(required = false) String uploadId,
                                           @RequestParam long size) throws IOException {
         var owner = currentUserService.getCurrentUser();
-        if (size < 0 || size > Math.max(0L, owner.getStorageLimit() - owner.getUsedStorage())) {
+        if (size < 0 || size > maximumFileSize) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "File exceeds the 15 GB limit");
+        }
+        if (size > Math.max(0L, owner.getStorageLimit() - owner.getUsedStorage())) {
             throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Storage quota exceeded");
         }
         String id = validId(uploadId);
@@ -64,6 +71,9 @@ public class ResumableUploadController {
             long remainingQuota = Math.max(0L, owner.getStorageLimit() - owner.getUsedStorage());
             if (currentSize + chunk.getSize() > remainingQuota) {
                 throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Storage quota exceeded");
+            }
+            if (currentSize + chunk.getSize() > maximumFileSize) {
+                throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "File exceeds the 15 GB limit");
             }
             if (Files.getFileStore(part.getParent()).getUsableSpace() < chunk.getSize()) {
                 throw new ResponseStatusException(HttpStatus.INSUFFICIENT_STORAGE, "Not enough server storage space");
@@ -97,6 +107,9 @@ public class ResumableUploadController {
                                                        @RequestParam long size,
                                                        @RequestParam(required = false) String folderUuid) throws IOException {
         Path part = partPath(validId(uploadId));
+        if (size > maximumFileSize) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "File exceeds the 15 GB limit");
+        }
         if (!Files.exists(part) || Files.size(part) != size) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Upload is incomplete");
         }

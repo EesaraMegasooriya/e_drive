@@ -15,6 +15,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -26,6 +27,9 @@ import java.util.Base64;
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
+
+    @Value("${app.jwt.expiration}")
+    private long jwtExpiration;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -68,7 +72,7 @@ public class AuthServiceImpl implements AuthService {
         return LoginResponse.builder()
                 .token(token)
                 .tokenType("Bearer")
-                .expiresIn(86400000L)
+                .expiresIn(jwtExpiration)
                 .user(
                         UserResponse.builder()
                                 .uuid(user.getUuid())

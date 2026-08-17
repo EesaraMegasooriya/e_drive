@@ -84,7 +84,11 @@ axiosInstance.interceptors.response.use(
   (response) => response,
 
   (error) => {
-    if (error.response?.status === 401 && !error.config?.skipAuthRedirect) {
+    // Do not destroy a valid local session because one request (or a proxy)
+    // returned 401. Expired tokens are handled before requests are sent.
+    if (error.response?.status === 401
+        && !error.config?.skipAuthRedirect
+        && isStoredTokenExpired()) {
       redirectToLogin();
     }
 
