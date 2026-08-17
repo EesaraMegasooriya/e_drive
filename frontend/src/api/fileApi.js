@@ -1,4 +1,4 @@
-import axios from "./axios";
+import axios, { getStoredToken } from "./axios";
 
 const fileApi = {
   uploadFile: async (file, folderUuid = null, options = {}) => {
@@ -30,8 +30,11 @@ const fileApi = {
   uploadFileResumable: async (file, folderUuid = null, options = {}) => {
     const storageKey = `edrive-upload:${file.name}:${file.size}:${file.lastModified}`;
     const savedId = localStorage.getItem(storageKey);
+    const uploadAuthHeaders = { "X-Upload-Authorization": `Bearer ${getStoredToken()}` };
     const init = await axios.post("/files/upload/resumable/init", null, {
-      params: savedId ? { uploadId: savedId, size: file.size } : { size: file.size }, signal: options.signal,
+      params: savedId ? { uploadId: savedId, size: file.size } : { size: file.size },
+      headers: uploadAuthHeaders,
+      signal: options.signal,
     });
     const { uploadId, chunkSize } = init.data;
     let offset = Math.min(Number(init.data.offset) || 0, file.size);
@@ -44,7 +47,7 @@ const fileApi = {
       const body = new FormData();
       body.append("chunk", chunk);
       const response = await axios.put(`/files/upload/resumable/${uploadId}`, body, {
-        params: { offset }, signal: options.signal,
+        params: { offset }, headers: uploadAuthHeaders, signal: options.signal,
       });
       offset = Number(response.data.offset);
       options.onUploadProgress?.({ loaded: offset, total: file.size, transferred: offset - initialOffset });
@@ -52,6 +55,7 @@ const fileApi = {
 
     const response = await axios.post(`/files/upload/resumable/${uploadId}/complete`, null, {
       params: { name: file.name, mimeType: file.type || "application/octet-stream", size: file.size, folderUuid },
+      headers: uploadAuthHeaders,
       signal: options.signal,
     });
     localStorage.removeItem(storageKey);

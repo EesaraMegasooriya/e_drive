@@ -30,7 +30,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
-        final String authHeader = request.getHeader("Authorization");
+        String authHeader = request.getHeader("Authorization");
+
+        // Some reverse proxies/security layers drop Authorization on large or
+        // PUT requests. Resumable uploads send the same Bearer token through a
+        // narrowly scoped fallback header as well.
+        if ((authHeader == null || !authHeader.startsWith("Bearer "))
+                && request.getRequestURI().startsWith("/api/files/upload/resumable/")) {
+            authHeader = request.getHeader("X-Upload-Authorization");
+        }
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);

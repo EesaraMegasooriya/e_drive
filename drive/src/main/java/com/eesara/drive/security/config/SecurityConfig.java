@@ -73,6 +73,7 @@ public class SecurityConfig {
         ));
 
         configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("Content-Range", "Accept-Ranges"));
 
         configuration.setAllowCredentials(true);
 
