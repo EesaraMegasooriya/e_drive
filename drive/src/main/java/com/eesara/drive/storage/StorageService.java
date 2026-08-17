@@ -16,4 +16,6 @@ public interface StorageService {
 
     void delete(String storagePath) throws IOException;
 
+    String checksum(String storagePath) throws IOException;
+
 }

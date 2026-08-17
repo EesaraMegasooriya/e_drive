@@ -12,6 +12,10 @@ public interface DriveFileRepository extends JpaRepository<DriveFile, Long> {
 
     Optional<DriveFile> findByUuid(String uuid);
 
+    Optional<DriveFile> findFirstByChecksumIsNullAndDeletedFalseOrderByCreatedAtAsc();
+
+    boolean existsByOwnerAndChecksumAndDeletedFalse(User owner, String checksum);
+
     List<DriveFile> findByOwner(User owner);
 
     List<DriveFile> findByFolder(Folder folder);

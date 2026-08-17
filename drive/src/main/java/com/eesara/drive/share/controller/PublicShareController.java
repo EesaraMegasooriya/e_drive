@@ -10,6 +10,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.CacheControl;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,9 +28,21 @@ public class PublicShareController {
      */
     @GetMapping("/folders/{token}")
     public ResponseEntity<List<PublicFolderFileResponse>> getFolderContents(
+            @PathVariable String token,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "100") int limit
+    ) {
+        return ResponseEntity.ok(shareService.getPublicFolderFiles(token, offset, limit));
+    }
+
+    /** Unlimited public API for integrations that need every direct file URL. */
+    @GetMapping("/folders/{token}/links")
+    public ResponseEntity<List<PublicFolderFileResponse>> getAllFolderLinks(
             @PathVariable String token
     ) {
-        return ResponseEntity.ok(shareService.getPublicFolderFiles(token));
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noCache())
+                .body(shareService.getAllPublicFolderFiles(token));
     }
 
     @GetMapping("/folders/{token}/assets/{fileUuid}.{extension}")
@@ -38,31 +51,39 @@ public class PublicShareController {
             @PathVariable String fileUuid,
             @PathVariable String extension
     ) {
-        ShareLink share = shareService.getByToken(token);
-
-        if (share.getType() != ShareType.FOLDER) {
-            throw new RuntimeException("Not a folder share");
-        }
-
-        var file = shareService.getPublicFolderFiles(token).stream()
-                .filter(item -> item.getUuid().equals(fileUuid))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("File not found in shared folder"));
-
-        if (!file.getExtension().equalsIgnoreCase(extension)) {
-            throw new RuntimeException("Invalid file extension.");
-        }
-
-        Resource resource = shareService.getSharedFolderResource(token, fileUuid);
+        var file = shareService.getSharedFolderDownload(token, fileUuid);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(file.getMimeType()))
-                .contentLength(file.getSize())
+                .contentLength(file.getFileSize())
+                .header(HttpHeaders.ACCEPT_RANGES, "bytes")
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.inline().filename(file.getName()).build().toString()
+                        ContentDisposition.inline().filename(file.getFileName()).build().toString()
                 )
-                .body(resource);
+                .body(file.getResource());
+    }
+
+    /**
+     * Canonical direct URL. It does not depend on the filename extension, so
+     * extensionless and renamed files continue to work.
+     */
+    @GetMapping("/folders/{token}/assets/{fileUuid}/content")
+    public ResponseEntity<Resource> getFolderAsset(
+            @PathVariable String token,
+            @PathVariable String fileUuid
+    ) {
+        var file = shareService.getSharedFolderDownload(token, fileUuid);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(file.getMimeType()))
+                .contentLength(file.getFileSize())
+                .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.inline().filename(file.getFileName()).build().toString()
+                )
+                .body(file.getResource());
     }
 
     @GetMapping("/assets/{token}.{extension}")
@@ -98,6 +119,8 @@ public class PublicShareController {
                 .contentLength(
                         share.getFile().getFileSize()
                 )
+
+                .header(HttpHeaders.ACCEPT_RANGES, "bytes")
 
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,

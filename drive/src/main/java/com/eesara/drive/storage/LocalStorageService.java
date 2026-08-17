@@ -9,7 +9,15 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.*;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.HexFormat;
 import java.util.UUID;
+import java.util.stream.Stream;
+import org.springframework.scheduling.annotation.Scheduled;
 
 @Service
 @RequiredArgsConstructor
@@ -36,13 +44,12 @@ public class LocalStorageService implements StorageService {
 
         Files.createDirectories(directory);
 
-        Path destination = directory.resolve(filename);
+        Path destination = directory.resolve(filename).toAbsolutePath().normalize();
 
-        Files.copy(
-                file.getInputStream(),
-                destination,
-                StandardCopyOption.REPLACE_EXISTING
-        );
+        // The servlet container has already streamed large multipart requests
+        // to disk. transferTo lets it move that temporary file when possible,
+        // avoiding a second multi-gigabyte copy and a long pause at 100%.
+        file.transferTo(destination);
 
         return folder + "/" + filename;
     }
@@ -86,6 +93,40 @@ public class LocalStorageService implements StorageService {
                 load(storagePath)
         );
 
+    }
+
+    @Override
+    public String checksum(String storagePath) throws IOException {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            try (DigestInputStream input = new DigestInputStream(
+                    Files.newInputStream(load(storagePath)), digest)) {
+                input.transferTo(java.io.OutputStream.nullOutputStream());
+            }
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException("SHA-256 is unavailable", impossible);
+        }
+    }
+
+    @Scheduled(cron = "${storage.cleanup-cron:0 30 3 * * *}")
+    public void cleanupTemporaryFiles() throws IOException {
+        Path temporaryDirectory = Paths.get(properties.getLocation(), ".tmp");
+        if (!Files.isDirectory(temporaryDirectory)) return;
+        Instant cutoff = Instant.now().minus(24, ChronoUnit.HOURS);
+        try (Stream<Path> paths = Files.walk(temporaryDirectory)) {
+            paths.filter(Files::isRegularFile)
+                    .filter(path -> {
+                        try {
+                            return Files.getLastModifiedTime(path).toInstant().isBefore(cutoff);
+                        } catch (IOException ignored) {
+                            return false;
+                        }
+                    })
+                    .forEach(path -> {
+                        try { Files.deleteIfExists(path); } catch (IOException ignored) { }
+                    });
+        }
     }
 
 }

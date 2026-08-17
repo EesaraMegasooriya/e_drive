@@ -48,7 +48,9 @@ function formatBytes(bytes) {
   if (bytes === 0 || bytes == null) return "0 KB";
   const kb = bytes / 1024;
   if (kb < 1024) return `${kb.toFixed(kb < 10 ? 2 : 0)} KB`;
-  return `${(kb / 1024).toFixed(2)} MB`;
+  const mb = kb / 1024;
+  if (mb < 1024) return `${mb.toFixed(2)} MB`;
+  return `${(mb / 1024).toFixed(2)} GB`;
 }
 
 function formatDate(dateStr) {
@@ -114,7 +116,9 @@ export default function Drive() {
   uploadsRef.current = uploads;
 
   const fileInputRef = useRef(null);
+  const folderInputRef = useRef(null);
   const dragCounter = useRef(0);
+  const uploadQueueRef = useRef(Promise.resolve());
 
   const hasActiveUploads = uploads.some((u) => u.status === "uploading");
 
@@ -254,7 +258,7 @@ export default function Drive() {
     [dismissUpload]
   );
 
-  const uploadFile = async (file) => {
+  const uploadFile = async (file, folderUuid) => {
     if (!file) return;
 
     const id = uid();
@@ -271,14 +275,16 @@ export default function Drive() {
         status: "uploading",
         error: null,
         controller,
+        file,
+        folderUuid,
       },
     ]);
 
     try {
-      // fileApi.uploadFile is expected to accept an options object as the
-      // 3rd argument with { onUploadProgress, signal } — see note below the
-      // component for the matching one-line change in fileApi.js.
-      await fileApi.uploadFile(file, currentFolder?.uuid ?? null, {
+      const upload = file.size >= 20 * 1024 * 1024
+        ? fileApi.uploadFileResumable
+        : fileApi.uploadFile;
+      await upload(file, folderUuid, {
         signal: controller?.signal,
         onUploadProgress: (evt) => {
           if (!evt?.total) return;
@@ -289,10 +295,10 @@ export default function Drive() {
 
       patchUpload(id, { progress: 100, status: "success" });
       toast.fire({ icon: "success", title: `${file.name} uploaded` });
-      await loadDrive(currentFolder?.uuid ?? null);
 
       // Auto-clear successful entries after a short delay
       setTimeout(() => dismissUpload(id), 2500);
+      return true;
     } catch (error) {
       if (error?.name === "CanceledError" || error?.name === "AbortError") {
         // Already removed by cancelUpload; nothing else to do.
@@ -300,13 +306,83 @@ export default function Drive() {
       }
       patchUpload(id, {
         status: "error",
-        error: error.response?.data?.message ?? "Upload failed. Please try again.",
+        error:
+          error.response?.status === 413
+            ? "This file exceeds the 15 GB upload limit."
+            : error.code === "ECONNABORTED"
+              ? "The upload timed out. Please try again."
+              : error.response?.data?.message ?? "Upload failed. Please try again.",
       });
+      return false;
     }
   };
 
+  const runUploadEntries = async (entries, refreshFolderUuid) => {
+    if (entries.length === 0) return;
+    let nextIndex = 0;
+    let uploadedAny = false;
+
+    // Limiting parallel requests prevents several large files from exhausting
+    // browser, proxy, and server resources while still keeping the UI usable.
+    const worker = async () => {
+      while (nextIndex < entries.length) {
+        const entry = entries[nextIndex++];
+        uploadedAny = (await uploadFile(entry.file, entry.folderUuid)) || uploadedAny;
+      }
+    };
+
+    await Promise.all(
+      Array.from({ length: Math.min(2, entries.length) }, () => worker())
+    );
+
+    if (uploadedAny) await loadDrive(refreshFolderUuid);
+  };
+
+  const enqueueUploads = (entries, refreshFolderUuid) => {
+    const run = () => runUploadEntries(entries, refreshFolderUuid);
+    const batch = uploadQueueRef.current.then(run, run);
+    uploadQueueRef.current = batch.catch(() => {});
+    return batch;
+  };
+
   const uploadFiles = (fileList) => {
-    Array.from(fileList || []).forEach((file) => uploadFile(file));
+    const folderUuid = currentFolder?.uuid ?? null;
+    return enqueueUploads(
+      Array.from(fileList || []).map((file) => ({ file, folderUuid })),
+      folderUuid
+    );
+  };
+
+  const uploadFolderContents = async (fileList) => {
+    const chosenFiles = Array.from(fileList || []);
+    if (chosenFiles.length === 0) return;
+    const rootUuid = currentFolder?.uuid ?? null;
+    const folderCache = new Map();
+
+    const ensureFolder = async (parentUuid, name) => {
+      const key = `${parentUuid || "root"}/${name}`;
+      if (!folderCache.has(key)) {
+        folderCache.set(key, (async () => {
+          const existing = (await folderApi.listFolders(parentUuid))
+            .find((folder) => folder.name === name);
+          return existing || folderApi.createFolder({ name, parentUuid });
+        })());
+      }
+      return folderCache.get(key);
+    };
+
+    const entries = [];
+    for (const file of chosenFiles) {
+      const parts = (file.webkitRelativePath || file.name).split("/").filter(Boolean);
+      parts.pop();
+      let parentUuid = rootUuid;
+      for (const name of parts) {
+        const folder = await ensureFolder(parentUuid, name);
+        parentUuid = folder.uuid;
+      }
+      entries.push({ file, folderUuid: parentUuid });
+    }
+    return enqueueUploads(entries, rootUuid);
   };
 
   // -------------------------------------------------------------------------
@@ -393,11 +469,15 @@ export default function Drive() {
         inputValue: share.shareUrl,
         inputAttributes: { readOnly: true, "aria-label": "Folder share URL" },
         showCancelButton: true,
+        showDenyButton: true,
         confirmButtonText: "Copy share link",
+        denyButtonText: "Copy public links API",
       });
 
       if (result.isConfirmed) {
         await copyText(share.shareUrl, "Folder share link copied");
+      } else if (result.isDenied) {
+        await copyText(share.linksUrl, "Public links API copied");
       }
     } catch (error) {
       Swal.fire({ icon: "error", title: "Couldn't create a folder share link", text: error.response?.data?.message ?? "Please try again." });
@@ -699,6 +779,25 @@ export default function Drive() {
             />
 
             <button
+              onClick={() => folderInputRef.current?.click()}
+              className="flex items-center gap-2 whitespace-nowrap rounded-lg border border-[#D8D4CA] bg-white px-4 py-2.5 text-sm font-medium text-[#1B1D1B] transition hover:bg-[#F0EEE7]"
+            >
+              <Folder size={16} />
+              Upload folder
+            </button>
+            <input
+              ref={folderInputRef}
+              type="file"
+              multiple
+              webkitdirectory=""
+              className="hidden"
+              onChange={(event) => {
+                uploadFolderContents(event.target.files);
+                event.target.value = "";
+              }}
+            />
+
+            <button
               onClick={handleCreateFolder}
               className="flex items-center gap-2 whitespace-nowrap rounded-lg border border-[#E4E1DA] bg-white px-4 py-2.5 text-sm font-medium text-[#1B1D1B] shadow-sm transition hover:bg-[#F0EEE7] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C52] focus-visible:ring-offset-2 sm:px-5"
             >
@@ -886,12 +985,13 @@ export default function Drive() {
         uploads={uploads}
         onCancel={cancelUpload}
         onDismiss={dismissUpload}
-        onRetry={(id) => {
-          // Retry isn't wired to a real File object (browsers don't let us
-          // keep one around indefinitely) — this just clears the failed
-          // entry so the user can re-pick the file. Swap in your own retry
-          // logic if you cache the File object per upload.
+        onRetry={async (id) => {
+          const failed = uploadsRef.current.find((u) => u.id === id);
+          if (!failed?.file) return;
           dismissUpload(id);
+          if (await uploadFile(failed.file, failed.folderUuid)) {
+            await loadDrive(failed.folderUuid);
+          }
         }}
       />
     </div>
@@ -1235,7 +1335,7 @@ function UploadProgressPanel({ uploads, onCancel, onDismiss, onRetry }) {
                       className="flex shrink-0 items-center gap-1 rounded border border-[#E4E1DA] px-2 py-0.5 text-[11px] font-medium text-[#5B5F5C] hover:bg-[#F0EEE7]"
                     >
                       <RotateCcw size={11} />
-                      Dismiss
+                      Retry
                     </button>
                   </div>
                 )}

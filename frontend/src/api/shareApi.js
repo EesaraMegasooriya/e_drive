@@ -40,8 +40,9 @@ const shareApi = {
     return response.data;
   },
 
-  getPublicFolderContents: async (token) => {
+  getPublicFolderContents: async (token, offset = 0, limit = 100) => {
     const response = await axios.get(`/public/folders/${encodeURIComponent(token)}`, {
+      params: { offset, limit },
       skipAuthRedirect: true,
     });
 

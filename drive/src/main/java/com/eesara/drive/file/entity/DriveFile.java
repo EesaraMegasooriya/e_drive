@@ -12,7 +12,10 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "files")
+@Table(name = "files", indexes = {
+        @Index(name = "idx_files_owner_folder_deleted", columnList = "owner_id,folder_id,deleted"),
+        @Index(name = "idx_files_folder_name", columnList = "folder_id,original_name")
+})
 @Getter
 @Setter
 @Builder

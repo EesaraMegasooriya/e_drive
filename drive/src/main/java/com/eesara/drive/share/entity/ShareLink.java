@@ -10,7 +10,10 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "share_links")
+@Table(name = "share_links", indexes = {
+        @Index(name = "idx_share_file_active", columnList = "file_id,active"),
+        @Index(name = "idx_share_folder_active", columnList = "folder_id,active")
+})
 @Getter
 @Setter
 @NoArgsConstructor

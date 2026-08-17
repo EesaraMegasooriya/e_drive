@@ -20,6 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.List;
 
@@ -78,6 +79,12 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();
 
+        CorsConfiguration publicConfiguration = new CorsConfiguration();
+        publicConfiguration.setAllowedOriginPatterns(List.of("*"));
+        publicConfiguration.setAllowedMethods(List.of(HttpMethod.GET.name(), HttpMethod.OPTIONS.name()));
+        publicConfiguration.setAllowedHeaders(List.of("*"));
+        publicConfiguration.setAllowCredentials(false);
+        source.registerCorsConfiguration("/api/public/**", publicConfiguration);
         source.registerCorsConfiguration("/**", configuration);
 
         return source;
@@ -96,6 +103,13 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
                         )
+                )
+
+                // Expired or invalid JWTs must be reported as 401 so the
+                // frontend can reliably clear the session and return to login.
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, exception) ->
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED))
                 )
 
                 .authorizeHttpRequests(auth -> auth

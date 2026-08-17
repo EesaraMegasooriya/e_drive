@@ -16,4 +16,6 @@ private String assetUrl;
 
 private String contentsUrl;
 
+private String linksUrl;
+
 }

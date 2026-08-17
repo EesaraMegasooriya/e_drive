@@ -49,6 +49,7 @@ public class FileController {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(response.getMimeType()))
                 .contentLength(response.getFileSize())
+                .header(HttpHeaders.ACCEPT_RANGES, "bytes")
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment()

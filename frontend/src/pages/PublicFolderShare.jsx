@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
   AlertCircle,
+  Check,
+  Copy,
   Download,
   File,
   FileAudio,
@@ -57,13 +59,17 @@ export default function PublicFolderShare() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const pageSize = 100;
 
   const loadShare = async () => {
     try {
       setLoading(true);
       setError("");
-      const data = await shareApi.getPublicFolderContents(token);
+      const data = await shareApi.getPublicFolderContents(token, 0, pageSize);
       setFiles(Array.isArray(data) ? data : []);
+      setHasMore(Array.isArray(data) && data.length === pageSize);
     } catch (requestError) {
       setFiles([]);
       setError(errorMessage(requestError));
@@ -75,10 +81,11 @@ export default function PublicFolderShare() {
   useEffect(() => {
     let cancelled = false;
 
-    shareApi.getPublicFolderContents(token)
+    shareApi.getPublicFolderContents(token, 0, pageSize)
       .then((data) => {
         if (!cancelled) {
           setFiles(Array.isArray(data) ? data : []);
+          setHasMore(Array.isArray(data) && data.length === pageSize);
           setError("");
         }
       })
@@ -96,6 +103,17 @@ export default function PublicFolderShare() {
       cancelled = true;
     };
   }, [token]);
+
+  const loadMore = async () => {
+    try {
+      setLoadingMore(true);
+      const next = await shareApi.getPublicFolderContents(token, files.length, pageSize);
+      setFiles((current) => [...current, ...next]);
+      setHasMore(next.length === pageSize);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const folderName = useMemo(() => {
     const firstPath = files[0]?.path;
@@ -130,7 +148,7 @@ export default function PublicFolderShare() {
               <div className="min-w-0">
                 <span className="font-mono text-xs uppercase tracking-wide text-[#1F5C52]">Public share</span>
                 <h1 className="mt-2 flex items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl"><FolderOpen className="shrink-0 text-[#C9971C]" size={30} /> <span className="truncate">{folderName}</span></h1>
-                <p className="mt-2 text-sm text-[#5B5F5C]">{files.length} {files.length === 1 ? "file" : "files"} shared with you</p>
+                <p className="mt-2 text-sm text-[#5B5F5C]">{files.length}{hasMore ? "+" : ""} {files.length === 1 ? "file" : "files"} shared with you</p>
               </div>
             </section>
 
@@ -139,6 +157,7 @@ export default function PublicFolderShare() {
                 {files.map((file) => <FileCard key={file.uuid} file={file} onPreview={setSelectedFile} />)}
               </div>
             )}
+            {hasMore && <div className="mt-8 text-center"><button type="button" onClick={loadMore} disabled={loadingMore} className="button disabled:opacity-60">{loadingMore ? "Loading…" : "Load more files"}</button></div>}
           </>
         )}
       </main>
@@ -158,6 +177,25 @@ function EmptyState() {
 
 function FileCard({ file, onPreview }) {
   const kind = fileKind(file);
+  const [copied, setCopied] = useState(false);
+
+  const copyDirectLink = async () => {
+    try {
+      await navigator.clipboard.writeText(file.url);
+    } catch {
+      const input = document.createElement("textarea");
+      input.value = file.url;
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      input.remove();
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+
   return <article className="overflow-hidden rounded-xl border border-[#E4E1DA] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
     <button type="button" onClick={() => onPreview(file)} className="block h-48 w-full overflow-hidden bg-[#F0EEE7] text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1F5C52]">
       {kind === "image" ? <img src={file.url} alt={file.name} className="h-full w-full object-cover" loading="lazy" /> : <PreviewTile file={file} />}
@@ -166,8 +204,9 @@ function FileCard({ file, onPreview }) {
       <p className="truncate font-semibold" title={file.name}>{file.name}</p>
       <p className="mt-1 truncate text-xs text-[#8A8D89]" title={file.path}>{file.path || "Shared file"}</p>
       <div className="mt-3 flex items-center justify-between gap-2 text-xs text-[#5B5F5C]"><span>{file.extension?.toUpperCase() || "FILE"}</span><span>{formatBytes(file.size)}</span></div>
-      <div className="mt-4 grid grid-cols-2 gap-2">
+      <div className="mt-4 grid grid-cols-[1fr_auto_1fr] gap-2">
         <button type="button" onClick={() => onPreview(file)} className="rounded-lg border border-[#D8D4CA] px-3 py-2 text-sm font-medium text-[#1B1D1B] hover:bg-[#F0EEE7]">Preview</button>
+        <button type="button" onClick={copyDirectLink} title="Copy direct link" aria-label={`Copy direct link for ${file.name}`} className="flex items-center justify-center rounded-lg border border-[#D8D4CA] px-2.5 text-[#1B1D1B] hover:bg-[#F0EEE7]">{copied ? <Check size={16} className="text-[#1F5C52]" /> : <Copy size={16} />}</button>
         <a href={file.url} download className="flex items-center justify-center gap-1.5 rounded-lg bg-[#1F5C52] px-3 py-2 text-sm font-medium text-white hover:bg-[#184A42]"><Download size={15} />Download</a>
       </div>
     </div>

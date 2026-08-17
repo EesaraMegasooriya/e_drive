@@ -10,7 +10,10 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "folders")
+@Table(name = "folders", indexes = {
+        @Index(name = "idx_folders_owner_parent_deleted", columnList = "owner_id,parent_id,is_deleted"),
+        @Index(name = "idx_folders_parent_name", columnList = "parent_id,name")
+})
 @Getter
 @Setter
 @Builder

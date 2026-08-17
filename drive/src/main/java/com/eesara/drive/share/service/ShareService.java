@@ -5,6 +5,7 @@ import com.eesara.drive.share.dto.CreateShareRequest;
 import com.eesara.drive.share.dto.ShareResponse;
 import com.eesara.drive.share.dto.PublicFolderFileResponse;
 import com.eesara.drive.share.entity.ShareLink;
+import com.eesara.drive.file.dto.FileDownloadResponse;
 import org.springframework.core.io.Resource;
 
 import java.util.List;
@@ -17,11 +18,15 @@ public interface ShareService {
 
     List<AssetUrlResponse> getFolderAssetUrls(String folderUuid);
 
-    List<PublicFolderFileResponse> getPublicFolderFiles(String token);
+    List<PublicFolderFileResponse> getPublicFolderFiles(String token, int offset, int limit);
+
+    List<PublicFolderFileResponse> getAllPublicFolderFiles(String token);
 
     ShareLink getByToken(String token);
 
     Resource getSharedResource(String token);
 
     Resource getSharedFolderResource(String token, String fileUuid);
+
+    FileDownloadResponse getSharedFolderDownload(String token, String fileUuid);
 }

@@ -41,44 +41,36 @@ public class DriveFileServiceImpl implements DriveFileService {
 
         User owner = currentUserService.getCurrentUser();
 
+        long remainingStorage = Math.max(0L, owner.getStorageLimit() - owner.getUsedStorage());
+        if (file.getSize() > remainingStorage) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Storage quota exceeded");
+        }
+
         Folder folder = null;
 
         if (folderUuid != null && !folderUuid.isBlank()) {
-            folder = folderRepository.findByUuid(folderUuid)
-                    .orElseThrow(() -> new RuntimeException("Folder not found"));
+            folder = folderRepository.findByUuidAndOwner(folderUuid, owner)
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND,
+                            "Folder not found"
+                    ));
         }
 
-        if (folder != null) {
-
-    System.out.println("Folder ID = " + folder.getId());
-    System.out.println("Owner ID = " + owner.getId());
-    System.out.println("Filename = " + file.getOriginalFilename());
-
-    List<DriveFile> files =
-            driveFileRepository.findByFolderAndOwner(folder, owner);
-
-    System.out.println("Files in folder:");
-
-    for (DriveFile f : files) {
-        System.out.println(
-                f.getId() + " | " +
-                f.getOriginalName()
-        );
-    }
-
-    if (driveFileRepository.existsByFolderAndOriginalNameAndOwner(
-            folder,
-            file.getOriginalFilename(),
-            owner)) {
-
-        throw new ResponseStatusException(
-        HttpStatus.CONFLICT,
-        "File already exists."
-);
-    }
-}
+        if (driveFileRepository.existsByFolderAndOriginalNameAndOwner(
+                folder, file.getOriginalFilename(), owner)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "File already exists.");
+        }
 
         String storagePath = storageService.save(file);
+
+        String checksum = null;
+        if (file.getSize() <= 64L * 1024 * 1024) {
+            checksum = storageService.checksum(storagePath);
+            if (driveFileRepository.existsByOwnerAndChecksumAndDeletedFalse(owner, checksum)) {
+                storageService.delete(storagePath);
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "This file content already exists.");
+            }
+        }
 
         String originalName = file.getOriginalFilename();
 
@@ -101,6 +93,7 @@ public class DriveFileServiceImpl implements DriveFileService {
                 .extension(extension)
                 .fileSize(file.getSize())
                 .storagePath(storagePath)
+                .checksum(checksum)
                 .build();
 
         driveFileRepository.save(driveFile);

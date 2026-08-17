@@ -1,4 +1,9 @@
-import axios, { AUTH_TOKEN_STORAGE_KEY, getStoredToken } from "./axios";
+import axios, {
+  AUTH_TOKEN_STORAGE_KEY,
+  clearStoredAuth,
+  getStoredToken,
+  isStoredTokenExpired,
+} from "./axios";
 
 const authApi = {
   login: async (credentials) => {
@@ -38,8 +43,7 @@ const authApi = {
   changePassword: async (data) => axios.put("/profile/password", data),
 
   logout: () => {
-    localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
-    localStorage.removeItem("user");
+    clearStoredAuth();
   },
 
   getToken: () => {
@@ -53,7 +57,7 @@ const authApi = {
   },
 
   isAuthenticated: () => {
-    return !!getStoredToken();
+    return !!getStoredToken() && !isStoredTokenExpired();
   },
 };
 
