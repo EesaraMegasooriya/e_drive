@@ -102,6 +102,15 @@ public class FileController {
         );
     }
 
+    @PostMapping("/{uuid}/copy")
+    public ResponseEntity<FileResponse> copy(
+            @PathVariable String uuid,
+            @RequestParam(required = false) String folderUuid
+    ) throws IOException {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(driveFileService.copyFile(uuid, folderUuid));
+    }
+
     @PutMapping("/{uuid}/visibility")
     public ResponseEntity<FileResponse> setVisibility(@PathVariable String uuid, @RequestParam boolean isPublic) {
         return ResponseEntity.ok(driveFileService.setPublic(uuid, isPublic));

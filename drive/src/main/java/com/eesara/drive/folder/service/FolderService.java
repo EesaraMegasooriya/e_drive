@@ -31,4 +31,8 @@ public interface FolderService {
 
     FolderResponse setPublic(String folderUuid, boolean isPublic);
 
+    FolderResponse moveFolder(String folderUuid, String parentUuid);
+
+    FolderResponse copyFolder(String folderUuid, String parentUuid);
+
 }

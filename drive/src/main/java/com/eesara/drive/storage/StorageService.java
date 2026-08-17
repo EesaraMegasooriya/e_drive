@@ -18,4 +18,6 @@ public interface StorageService {
 
     String checksum(String storagePath) throws IOException;
 
+    String copy(String storagePath) throws IOException;
+
 }

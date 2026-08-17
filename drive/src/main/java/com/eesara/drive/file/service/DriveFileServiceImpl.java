@@ -144,7 +144,7 @@ public class DriveFileServiceImpl implements DriveFileService {
 
         } else {
 
-            Folder folder = folderRepository.findByUuid(folderUuid)
+            Folder folder = folderRepository.findByUuidAndOwner(folderUuid, owner)
                     .orElseThrow(() -> new RuntimeException("Folder not found"));
 
             files = driveFileRepository.findByFolderAndOwner(
@@ -251,9 +251,16 @@ public void deleteFile(String fileUuid) throws IOException {
 
         if (folderUuid != null && !folderUuid.isBlank()) {
 
-            folder = folderRepository.findByUuid(folderUuid)
+            folder = folderRepository.findByUuidAndOwner(folderUuid, owner)
                     .orElseThrow(() ->
                             new RuntimeException("Folder not found"));
+        }
+
+        String currentFolderUuid = driveFile.getFolder() == null
+                ? null : driveFile.getFolder().getUuid();
+        String targetFolderUuid = folder == null ? null : folder.getUuid();
+        if (java.util.Objects.equals(currentFolderUuid, targetFolderUuid)) {
+            return toFileResponse(driveFile);
         }
 
         if (driveFileRepository.existsByFolderAndOriginalNameAndOwner(
@@ -269,6 +276,51 @@ public void deleteFile(String fileUuid) throws IOException {
         driveFileRepository.save(driveFile);
 
         return toFileResponse(driveFile);
+    }
+
+    @Override
+    public FileResponse copyFile(String fileUuid, String folderUuid) throws IOException {
+        User owner = currentUserService.getCurrentUser();
+        DriveFile source = driveFileRepository.findByUuid(fileUuid)
+                .filter(file -> file.getOwner().getId().equals(owner.getId()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found"));
+
+        Folder destination = null;
+        if (folderUuid != null && !folderUuid.isBlank()) {
+            destination = folderRepository.findByUuidAndOwner(folderUuid, owner)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Folder not found"));
+        }
+        if (driveFileRepository.existsByFolderAndOriginalNameAndOwner(
+                destination, source.getOriginalName(), owner)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A file with this name already exists in the target folder.");
+        }
+        if (source.getFileSize() > Math.max(0L, owner.getStorageLimit() - owner.getUsedStorage())) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Storage quota exceeded");
+        }
+
+        String copiedPath = storageService.copy(source.getStoragePath());
+        try {
+            DriveFile copy = DriveFile.builder()
+                    .owner(owner)
+                    .folder(destination)
+                    .originalName(source.getOriginalName())
+                    .storedName(copiedPath.substring(copiedPath.lastIndexOf('/') + 1))
+                    .mimeType(source.getMimeType())
+                    .extension(source.getExtension())
+                    .fileSize(source.getFileSize())
+                    .storagePath(copiedPath)
+                    .checksum(source.getChecksum())
+                    .isPublic(false)
+                    .build();
+            driveFileRepository.save(copy);
+            owner.setUsedStorage(owner.getUsedStorage() + copy.getFileSize());
+            userRepository.save(owner);
+            return toFileResponse(copy);
+        } catch (RuntimeException exception) {
+            storageService.delete(copiedPath);
+            throw exception;
+        }
     }
 
     private FileResponse toFileResponse(DriveFile driveFile) {

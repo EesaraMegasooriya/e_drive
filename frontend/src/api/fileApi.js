@@ -102,6 +102,13 @@ const fileApi = {
     return response.data;
   },
 
+  copyFile: async (uuid, folderUuid) => {
+    const response = await axios.post(`/files/${uuid}/copy`, null, {
+      params: { folderUuid },
+    });
+    return response.data;
+  },
+
   deleteFile: async (uuid) => {
     await axios.delete(`/files/${uuid}`);
   },

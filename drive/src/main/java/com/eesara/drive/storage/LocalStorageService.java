@@ -109,6 +109,21 @@ public class LocalStorageService implements StorageService {
         }
     }
 
+    @Override
+    public String copy(String storagePath) throws IOException {
+        Path source = load(storagePath);
+        String originalStoredName = source.getFileName().toString();
+        String extension = originalStoredName.contains(".")
+                ? originalStoredName.substring(originalStoredName.lastIndexOf('.'))
+                : "";
+        String filename = UUID.randomUUID() + extension;
+        String folder = filename.substring(0, 2);
+        Path directory = Paths.get(properties.getLocation(), folder);
+        Files.createDirectories(directory);
+        Files.copy(source, directory.resolve(filename), StandardCopyOption.COPY_ATTRIBUTES);
+        return folder + "/" + filename;
+    }
+
     @Scheduled(cron = "${storage.cleanup-cron:0 30 3 * * *}")
     public void cleanupTemporaryFiles() throws IOException {
         Path temporaryDirectory = Paths.get(properties.getLocation(), ".tmp");

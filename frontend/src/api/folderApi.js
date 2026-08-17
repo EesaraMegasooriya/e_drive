@@ -30,6 +30,20 @@ const folderApi = {
     await axios.delete(`/folders/${uuid}`);
   },
 
+  moveFolder: async (uuid, parentUuid) => {
+    const response = await axios.put(`/folders/${uuid}/move`, null, {
+      params: { parentUuid },
+    });
+    return response.data;
+  },
+
+  copyFolder: async (uuid, parentUuid) => {
+    const response = await axios.post(`/folders/${uuid}/copy`, null, {
+      params: { parentUuid },
+    });
+    return response.data;
+  },
+
   setVisibility: async (uuid, isPublic) => (await axios.put(`/folders/${uuid}/visibility`, null, { params: { isPublic } })).data,
 };
 

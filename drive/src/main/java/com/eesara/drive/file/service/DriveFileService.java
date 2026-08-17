@@ -39,4 +39,6 @@ public interface DriveFileService {
             String fileUuid,
             String folderUuid
     );
+
+    FileResponse copyFile(String fileUuid, String folderUuid) throws IOException;
 }

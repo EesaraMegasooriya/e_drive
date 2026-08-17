@@ -1,6 +1,7 @@
 package com.eesara.drive.folder.service;
 
 import com.eesara.drive.file.repository.DriveFileRepository;
+import com.eesara.drive.file.service.DriveFileService;
 import com.eesara.drive.folder.dto.CreateFolderRequest;
 import com.eesara.drive.folder.dto.FolderResponse;
 import com.eesara.drive.folder.dto.RenameFolderRequest;
@@ -13,6 +14,8 @@ import com.eesara.drive.user.entity.User;
 import com.eesara.drive.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -26,6 +29,7 @@ public class FolderServiceImpl implements FolderService {
     private final ShareLinkRepository shareLinkRepository;
     private final StorageService storageService;
     private final UserRepository userRepository;
+    private final DriveFileService driveFileService;
 
     @Override
     public FolderResponse createFolder(CreateFolderRequest request) {
@@ -171,6 +175,121 @@ public FolderResponse getFolder(String folderUuid) {
                 .orElseThrow(() -> new RuntimeException("Folder not found"));
         folder.setIsPublic(isPublic);
         return toResponse(folderRepository.save(folder));
+    }
+
+    @Override
+    public FolderResponse moveFolder(String folderUuid, String parentUuid) {
+        User owner = currentUserService.getCurrentUser();
+        Folder source = ownedFolder(folderUuid, owner);
+        Folder destination = resolveParent(parentUuid, owner);
+
+        if (destination != null && belongsToTree(destination, source)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "A folder cannot be moved into itself or one of its subfolders.");
+        }
+        if (java.util.Objects.equals(
+                source.getParent() == null ? null : source.getParent().getId(),
+                destination == null ? null : destination.getId())) {
+            return toResponse(source);
+        }
+        ensureFolderNameAvailable(destination, source.getName(), owner);
+
+        String oldPath = source.getPath();
+        String newPath = destination == null
+                ? "/" + source.getName()
+                : destination.getPath() + "/" + source.getName();
+        source.setParent(destination);
+        source.setPath(newPath);
+        folderRepository.save(source);
+        updateChildPaths(source, oldPath, newPath);
+        return toResponse(source);
+    }
+
+    @Override
+    public FolderResponse copyFolder(String folderUuid, String parentUuid) {
+        User owner = currentUserService.getCurrentUser();
+        Folder source = ownedFolder(folderUuid, owner);
+        Folder destination = resolveParent(parentUuid, owner);
+        if (destination != null && belongsToTree(destination, source)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "A folder cannot be copied into itself or one of its subfolders.");
+        }
+        ensureFolderNameAvailable(destination, source.getName(), owner);
+        long copySize = folderTreeSize(source);
+        if (copySize > Math.max(0L, owner.getStorageLimit() - owner.getUsedStorage())) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Storage quota exceeded");
+        }
+        return toResponse(copyFolderTree(source, destination, owner));
+    }
+
+    private long folderTreeSize(Folder folder) {
+        long size = driveFileRepository.findByFolder(folder).stream()
+                .filter(file -> !Boolean.TRUE.equals(file.getDeleted()))
+                .mapToLong(file -> file.getFileSize())
+                .sum();
+        for (Folder child : folderRepository.findByParent(folder)) {
+            if (!Boolean.TRUE.equals(child.getIsDeleted())) {
+                size = Math.addExact(size, folderTreeSize(child));
+            }
+        }
+        return size;
+    }
+
+    private Folder copyFolderTree(Folder source, Folder destination, User owner) {
+        String path = destination == null
+                ? "/" + source.getName()
+                : destination.getPath() + "/" + source.getName();
+        Folder copy = folderRepository.save(Folder.builder()
+                .name(source.getName())
+                .owner(owner)
+                .parent(destination)
+                .path(path)
+                .isPublic(false)
+                .build());
+
+        for (var file : driveFileRepository.findByFolder(source)) {
+            if (!Boolean.TRUE.equals(file.getDeleted())) {
+                try {
+                    driveFileService.copyFile(file.getUuid(), copy.getUuid());
+                } catch (java.io.IOException exception) {
+                    throw new RuntimeException("Unable to copy folder contents", exception);
+                }
+            }
+        }
+        for (Folder child : folderRepository.findByParent(source)) {
+            if (!Boolean.TRUE.equals(child.getIsDeleted())) {
+                copyFolderTree(child, copy, owner);
+            }
+        }
+        return copy;
+    }
+
+    private Folder ownedFolder(String uuid, User owner) {
+        return folderRepository.findByUuidAndOwner(uuid, owner)
+                .filter(folder -> !Boolean.TRUE.equals(folder.getIsDeleted()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Folder not found"));
+    }
+
+    private Folder resolveParent(String parentUuid, User owner) {
+        return parentUuid == null || parentUuid.isBlank()
+                ? null
+                : ownedFolder(parentUuid, owner);
+    }
+
+    private boolean belongsToTree(Folder candidate, Folder ancestor) {
+        Folder current = candidate;
+        while (current != null) {
+            if (current.getId().equals(ancestor.getId())) return true;
+            current = current.getParent();
+        }
+        return false;
+    }
+
+    private void ensureFolderNameAvailable(Folder parent, String name, User owner) {
+        if (folderRepository.existsByParentAndNameAndOwner(parent, name, owner)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A folder with this name already exists in the target folder.");
+        }
     }
 @Override
 public void deleteFolder(String folderUuid) {

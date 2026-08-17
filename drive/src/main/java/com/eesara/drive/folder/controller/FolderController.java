@@ -77,4 +77,21 @@ public class FolderController {
     public ResponseEntity<FolderResponse> setVisibility(@PathVariable String uuid, @RequestParam boolean isPublic) {
         return ResponseEntity.ok(folderService.setPublic(uuid, isPublic));
     }
+
+    @PutMapping("/{uuid}/move")
+    public ResponseEntity<FolderResponse> moveFolder(
+            @PathVariable String uuid,
+            @RequestParam(required = false) String parentUuid
+    ) {
+        return ResponseEntity.ok(folderService.moveFolder(uuid, parentUuid));
+    }
+
+    @PostMapping("/{uuid}/copy")
+    public ResponseEntity<FolderResponse> copyFolder(
+            @PathVariable String uuid,
+            @RequestParam(required = false) String parentUuid
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(folderService.copyFolder(uuid, parentUuid));
+    }
 }

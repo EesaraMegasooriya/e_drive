@@ -17,8 +17,10 @@ import {
   LayoutGrid,
   List as ListIcon,
   ChevronRight,
+  ChevronLeft,
   ArrowUpDown,
   Copy,
+  Move,
   X,
   Home,
   CheckCircle2,
@@ -71,22 +73,22 @@ function formatDate(dateStr) {
   });
 }
 
-function iconForMime(mime = "") {
-  if (mime.startsWith("image/")) return FileImage;
-  if (mime.startsWith("audio/")) return FileAudio;
-  if (mime.startsWith("video/")) return FileVideo;
+function MimeIcon({ mime = "", ...props }) {
+  if (mime.startsWith("image/")) return <FileImage {...props} />;
+  if (mime.startsWith("audio/")) return <FileAudio {...props} />;
+  if (mime.startsWith("video/")) return <FileVideo {...props} />;
   if (mime.includes("zip") || mime.includes("compressed") || mime.includes("tar"))
-    return FileArchive;
+    return <FileArchive {...props} />;
   if (mime.includes("sheet") || mime.includes("csv") || mime.includes("excel"))
-    return FileSpreadsheet;
+    return <FileSpreadsheet {...props} />;
   if (
     mime.includes("json") ||
     mime.includes("javascript") ||
     mime.includes("xml") ||
     mime.includes("html")
   )
-    return FileCode;
-  return FileText;
+    return <FileCode {...props} />;
+  return <FileText {...props} />;
 }
 
 // Catalog tag: gives every card a small archival index, e.g. "F-014"
@@ -104,6 +106,7 @@ export default function Drive() {
   const [loading, setLoading] = useState(true);
   const [assetUrl, setAssetUrl] = useState(null);
   const [currentFolder, setCurrentFolder] = useState(null);
+  const currentFolderUuidRef = useRef(null);
 
   const [folders, setFolders] = useState([]);
   const [files, setFiles] = useState([]);
@@ -118,11 +121,19 @@ export default function Drive() {
   const [sortDir, setSortDir] = useState("asc");
   const [isDragging, setIsDragging] = useState(false);
 
+  // ---- Move / Copy picker ----
+  // { mode: 'move' | 'copy', type: 'file' | 'folder', item } | null
+  const [picker, setPicker] = useState(null);
+  const [pickerBusy, setPickerBusy] = useState(false);
+
   // ---- Upload queue (supports multiple concurrent uploads with progress) ----
   // Each entry: { id, name, size, progress (0-100), status: 'uploading' | 'success' | 'error', error, controller }
   const [uploads, setUploads] = useState([]);
   const uploadsRef = useRef(uploads);
-  uploadsRef.current = uploads;
+
+  useEffect(() => {
+    uploadsRef.current = uploads;
+  }, [uploads]);
 
   const fileInputRef = useRef(null);
   const folderInputRef = useRef(null);
@@ -135,19 +146,22 @@ export default function Drive() {
   // Data loading
   // -------------------------------------------------------------------------
 
-  const loadDrive = async (folderUuid = null) => {
+  const loadDrive = async (folderUuid = null, { keepSelection = false } = {}) => {
     try {
       setLoading(true);
 
       const data = await driveApi.getDrive(folderUuid);
 
       setCurrentFolder(data.currentFolder);
+      currentFolderUuidRef.current = data.currentFolder?.uuid ?? null;
       setFolders(data.folders || []);
       setFiles(data.files || []);
 
-      setSelectedFile(null);
-      setSelectedFolder(null);
-      setFolderShare(null);
+      if (!keepSelection) {
+        setSelectedFile(null);
+        setSelectedFolder(null);
+        setFolderShare(null);
+      }
     } catch (error) {
       Swal.fire({
         icon: "error",
@@ -160,11 +174,15 @@ export default function Drive() {
   };
 
   useEffect(() => {
+    // Initial server synchronization.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadDrive();
   }, []);
 
   useEffect(() => {
     if (!selectedFile || !selectedFile.mimeType?.startsWith("image/")) {
+      // Clear the object URL when the selected resource is not previewable.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAssetUrl(null);
       return;
     }
@@ -362,7 +380,9 @@ export default function Drive() {
       Array.from({ length: Math.min(2, entries.length) }, () => worker())
     );
 
-    if (uploadedAny) await loadDrive(refreshFolderUuid);
+    if (uploadedAny && currentFolderUuidRef.current === refreshFolderUuid) {
+      await loadDrive(refreshFolderUuid);
+    }
   };
 
   const enqueueUploads = (entries, refreshFolderUuid) => {
@@ -674,6 +694,64 @@ export default function Drive() {
   };
 
   // -------------------------------------------------------------------------
+  // Move / Copy
+  // -------------------------------------------------------------------------
+
+  // Opens the destination picker. mode: 'move' | 'copy', type: 'file' | 'folder'.
+  const openPicker = (mode, type, item) => setPicker({ mode, type, item });
+  const closePicker = () => {
+    if (pickerBusy) return;
+    setPicker(null);
+  };
+
+  const confirmPicker = async (destination) => {
+    if (!picker) return;
+    const { mode, type, item } = picker;
+    const destFolderUuid = destination?.uuid ?? null;
+
+    // Guard against moving/copying a folder into itself.
+    if (type === "folder" && destFolderUuid === item.uuid) {
+      toast.fire({ icon: "error", title: "Can't move a folder into itself" });
+      return;
+    }
+
+    setPickerBusy(true);
+    try {
+      if (type === "file") {
+        if (mode === "move") {
+          await fileApi.moveFile(item.uuid, destFolderUuid);
+        } else {
+          await fileApi.copyFile(item.uuid, destFolderUuid);
+        }
+      } else {
+        if (mode === "move") {
+          await folderApi.moveFolder(item.uuid, destFolderUuid);
+        } else {
+          await folderApi.copyFolder(item.uuid, destFolderUuid);
+        }
+      }
+
+      toast.fire({
+        icon: "success",
+        title: `${type === "file" ? item.originalName : item.name} ${
+          mode === "move" ? "moved" : "copied"
+        }${destination ? ` to "${destination.name}"` : " to My Drive"}`,
+      });
+
+      setPicker(null);
+      await loadDrive(currentFolder?.uuid ?? null);
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: mode === "move" ? "Move failed" : "Copy failed",
+        text: error.response?.data?.message ?? "Please try again.",
+      });
+    } finally {
+      setPickerBusy(false);
+    }
+  };
+
+  // -------------------------------------------------------------------------
   // Drag & drop upload (whole content area)
   // -------------------------------------------------------------------------
 
@@ -714,11 +792,11 @@ export default function Drive() {
             <div className="h-11 w-32 sm:w-36 animate-pulse rounded-lg bg-[#E4E1DA]" />
             <div className="h-11 w-32 sm:w-36 animate-pulse rounded-lg bg-[#E4E1DA]" />
           </div>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 grid-cols-2 sm:gap-5 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="h-40 animate-pulse rounded-xl border border-[#E4E1DA] bg-white"
+                className="h-32 sm:h-40 animate-pulse rounded-xl border border-[#E4E1DA] bg-white"
               />
             ))}
           </div>
@@ -741,8 +819,8 @@ export default function Drive() {
     >
       {/* Drag overlay */}
       {isDragging && (
-        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-[#1B1D1B]/70 backdrop-blur-sm">
-          <div className="mx-4 rounded-2xl border-2 border-dashed border-[#8FBBAF] bg-[#1F5C52] px-8 py-8 text-center text-white shadow-2xl sm:px-12 sm:py-10">
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-[#1B1D1B]/70 backdrop-blur-sm px-4">
+          <div className="mx-auto w-full max-w-sm rounded-2xl border-2 border-dashed border-[#8FBBAF] bg-[#1F5C52] px-6 py-7 text-center text-white shadow-2xl sm:max-w-none sm:px-12 sm:py-10">
             <Upload size={40} className="mx-auto mb-3" />
             <p className="text-lg font-semibold">Drop to upload</p>
             <p className="text-sm text-white/70">
@@ -752,9 +830,9 @@ export default function Drive() {
         </div>
       )}
 
-      <div className="mx-auto max-w-7xl p-4 sm:p-6 md:p-8">
+      <div className="mx-auto max-w-7xl p-3 sm:p-6 md:p-8">
         {/* Header / breadcrumb */}
-        <div className="mb-6">
+        <div className="mb-5 sm:mb-6">
           <nav
             aria-label="Breadcrumb"
             className="mb-2 flex flex-wrap items-center gap-1 font-mono text-xs uppercase tracking-wide text-[#8A8D89]"
@@ -772,8 +850,8 @@ export default function Drive() {
                 <span
                   className={
                     i === breadcrumbs.length - 1
-                      ? "max-w-[160px] truncate px-1.5 py-0.5 text-[#1B1D1B] sm:max-w-none"
-                      : "max-w-[120px] truncate px-1.5 py-0.5 sm:max-w-none"
+                      ? "max-w-[120px] truncate px-1.5 py-0.5 text-[#1B1D1B] sm:max-w-none"
+                      : "max-w-[90px] truncate px-1.5 py-0.5 sm:max-w-none"
                   }
                 >
                   {crumb}
@@ -782,20 +860,21 @@ export default function Drive() {
             ))}
           </nav>
 
-          <h1 className="text-2xl font-bold tracking-tight text-[#1B1D1B] sm:text-3xl md:text-4xl">
+          <h1 className="break-words text-xl font-bold tracking-tight text-[#1B1D1B] sm:text-3xl md:text-4xl">
             {currentFolder ? currentFolder.name : "My Drive"}
           </h1>
         </div>
 
         {/* Toolbar */}
-        <div className="mb-6 flex flex-col gap-4">
-          <div className="flex flex-wrap items-center gap-3">
+        <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 whitespace-nowrap rounded-lg bg-[#1F5C52] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#184A42] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C52] focus-visible:ring-offset-2 sm:px-5"
+              className="flex items-center gap-2 whitespace-nowrap rounded-lg bg-[#1F5C52] px-3.5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#184A42] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C52] focus-visible:ring-offset-2 sm:px-5"
             >
               <Upload size={16} />
-              Upload file
+              <span className="hidden sm:inline">Upload file</span>
+              <span className="sm:hidden">Upload</span>
             </button>
             <input
               ref={fileInputRef}
@@ -807,10 +886,11 @@ export default function Drive() {
 
             <button
               onClick={() => folderInputRef.current?.click()}
-              className="flex items-center gap-2 whitespace-nowrap rounded-lg border border-[#D8D4CA] bg-white px-4 py-2.5 text-sm font-medium text-[#1B1D1B] transition hover:bg-[#F0EEE7]"
+              className="flex items-center gap-2 whitespace-nowrap rounded-lg border border-[#D8D4CA] bg-white px-3.5 py-2.5 text-sm font-medium text-[#1B1D1B] transition hover:bg-[#F0EEE7]"
             >
               <Folder size={16} />
-              Upload folder
+              <span className="hidden sm:inline">Upload folder</span>
+              <span className="sm:hidden">Folder</span>
             </button>
             <input
               ref={folderInputRef}
@@ -826,10 +906,11 @@ export default function Drive() {
 
             <button
               onClick={handleCreateFolder}
-              className="flex items-center gap-2 whitespace-nowrap rounded-lg border border-[#E4E1DA] bg-white px-4 py-2.5 text-sm font-medium text-[#1B1D1B] shadow-sm transition hover:bg-[#F0EEE7] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C52] focus-visible:ring-offset-2 sm:px-5"
+              className="flex items-center gap-2 whitespace-nowrap rounded-lg border border-[#E4E1DA] bg-white px-3.5 py-2.5 text-sm font-medium text-[#1B1D1B] shadow-sm transition hover:bg-[#F0EEE7] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C52] focus-visible:ring-offset-2 sm:px-5"
             >
               <Folder size={16} className="text-[#C9971C]" />
-              New folder
+              <span className="hidden sm:inline">New folder</span>
+              <span className="sm:hidden">New</span>
             </button>
 
             {currentFolder && (
@@ -838,12 +919,13 @@ export default function Drive() {
                 className="flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm text-[#5B5F5C] hover:bg-[#EAE7DF] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C52] sm:ml-auto"
               >
                 <ChevronRight size={14} className="rotate-180" />
-                Back to My Drive
+                <span className="hidden xs:inline">Back to My Drive</span>
+                <span className="xs:hidden">Back</span>
               </button>
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="relative w-full sm:min-w-[220px] sm:flex-1">
               <Search
                 size={16}
@@ -866,7 +948,7 @@ export default function Drive() {
               )}
             </div>
 
-            <div className="flex flex-1 flex-wrap items-center gap-3 sm:flex-none">
+            <div className="flex flex-1 flex-wrap items-center gap-2 sm:flex-none sm:gap-3">
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
@@ -912,7 +994,7 @@ export default function Drive() {
         </div>
 
         {/* Main layout */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
+        <div className="grid grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-12 lg:gap-8">
           {/* LEFT: browser */}
           <div className="lg:col-span-8">
             {isEmpty ? (
@@ -970,7 +1052,7 @@ export default function Drive() {
 
           {/* RIGHT: detail panel */}
           <div className="lg:col-span-4">
-            <div className="rounded-xl border border-[#E4E1DA] bg-white p-5 shadow-sm sm:p-6 lg:sticky lg:top-8">
+            <div className="rounded-xl border border-[#E4E1DA] bg-white p-4 shadow-sm sm:p-6 lg:sticky lg:top-8">
               {selectedFile ? (
                 <FileDetail
                   file={selectedFile}
@@ -981,19 +1063,24 @@ export default function Drive() {
                   onToggleVisibility={() => toggleFileVisibility(selectedFile)}
                   onRename={handleRename}
                   onDelete={handleDelete}
+                  onMove={() => openPicker("move", "file", selectedFile)}
+                  onCopy={() => openPicker("copy", "file", selectedFile)}
                 />
               ) : selectedFolder ? (
                 <FolderDetail
                   folder={selectedFolder}
                   share={folderShare}
+                  onOpen={() => openFolder(selectedFolder)}
                   onCopy={copyText}
                   onShare={handleFolderShare}
                   onRename={handleFolderRename}
                   onDelete={handleFolderDelete}
+                  onMoveFolder={() => openPicker("move", "folder", selectedFolder)}
+                  onCopyFolder={() => openPicker("copy", "folder", selectedFolder)}
                 />
               ) : (
-                <div className="py-12 text-center sm:py-20">
-                  <FileText size={64} className="mx-auto mb-5 text-[#D8D4CA]" />
+                <div className="py-10 text-center sm:py-20">
+                  <FileText size={56} className="mx-auto mb-4 text-[#D8D4CA] sm:mb-5 sm:h-16 sm:w-16" />
                   <h2 className="text-base font-semibold text-[#5B5F5C]">
                     Nothing selected
                   </h2>
@@ -1021,6 +1108,18 @@ export default function Drive() {
           }
         }}
       />
+
+      {/* Move / Copy destination picker */}
+      {picker && (
+        <FolderPickerModal
+          mode={picker.mode}
+          type={picker.type}
+          item={picker.item}
+          busy={pickerBusy}
+          onClose={closePicker}
+          onConfirm={confirmPicker}
+        />
+      )}
     </div>
   );
 }
@@ -1031,7 +1130,7 @@ export default function Drive() {
 
 function EmptyState({ onUpload }) {
   return (
-    <div className="rounded-xl border border-dashed border-[#D8D4CA] bg-white/60 px-4 py-16 text-center sm:py-24">
+    <div className="rounded-xl border border-dashed border-[#D8D4CA] bg-white/60 px-4 py-14 text-center sm:py-24">
       <Folder size={40} className="mx-auto mb-4 text-[#D8D4CA]" />
       <h2 className="text-base font-semibold text-[#1B1D1B]">
         This folder is empty
@@ -1056,39 +1155,38 @@ function FolderCard({ folder, tag, active, onClick, onDoubleClick }) {
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       title="Double-click to open folder"
-      className={`group relative rounded-xl border p-4 text-left shadow-sm transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C52] sm:p-5 ${
+      className={`group relative rounded-xl border p-3 text-left shadow-sm transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C52] sm:p-5 ${
         active ? "border-[#1F5C52] bg-[#EEF4F2]" : "border-[#E4E1DA] bg-white"
       }`}
     >
-      <span className="absolute right-3 top-3 font-mono text-[10px] tracking-wide text-[#C7C3B8]">
+      <span className="absolute right-2.5 top-2.5 font-mono text-[10px] tracking-wide text-[#C7C3B8] sm:right-3 sm:top-3">
         {tag}
       </span>
-      <Folder size={36} className="mb-3 text-[#C9971C] sm:h-10 sm:w-10" />
+      <Folder size={30} className="mb-2 text-[#C9971C] sm:mb-3 sm:h-10 sm:w-10" />
       <h3 className="truncate pr-8 text-sm font-semibold text-[#1B1D1B]">
         {folder.name}
       </h3>
-      <p className="mt-1 text-xs text-[#8A8D89]">Double-click to open</p>
+      <p className="mt-1 hidden text-xs text-[#8A8D89] sm:block">Double-click to open</p>
     </button>
   );
 }
 
 function FileCard({ file, tag, active, onClick }) {
-  const Icon = iconForMime(file.mimeType);
   return (
     <button
       onClick={onClick}
-      className={`group relative rounded-xl border p-4 text-left shadow-sm transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C52] sm:p-5 ${
+      className={`group relative rounded-xl border p-3 text-left shadow-sm transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C52] sm:p-5 ${
         active ? "border-[#1F5C52] bg-[#EEF4F2]" : "border-[#E4E1DA] bg-white"
       }`}
     >
-      <span className="absolute right-3 top-3 font-mono text-[10px] tracking-wide text-[#C7C3B8]">
+      <span className="absolute right-2.5 top-2.5 font-mono text-[10px] tracking-wide text-[#C7C3B8] sm:right-3 sm:top-3">
         {tag}
       </span>
-      <Icon size={36} className="mb-3 text-[#1F5C52] sm:h-10 sm:w-10" />
+      <MimeIcon mime={file.mimeType} size={30} className="mb-2 text-[#1F5C52] sm:mb-3 sm:h-10 sm:w-10" />
       <h3 className="truncate pr-8 text-sm font-semibold text-[#1B1D1B]">
         {file.originalName}
       </h3>
-      <p className="mt-1 truncate font-mono text-xs text-[#8A8D89]">
+      <p className="mt-1 truncate font-mono text-[11px] text-[#8A8D89] sm:text-xs">
         {formatBytes(file.fileSize)} · {formatDate(file.createdAt)}
       </p>
     </button>
@@ -1132,9 +1230,7 @@ function ListTable({
             </button>
           </li>
         ))}
-        {files.map((file) => {
-          const Icon = iconForMime(file.mimeType);
-          return (
+        {files.map((file) => (
             <li key={file.uuid}>
               <button
                 onClick={() => onFileClick(file)}
@@ -1143,7 +1239,7 @@ function ListTable({
                 }`}
               >
                 <span className="flex items-center gap-3 truncate text-sm font-medium text-[#1B1D1B]">
-                  <Icon size={18} className="shrink-0 text-[#1F5C52]" />
+                  <MimeIcon mime={file.mimeType} size={18} className="shrink-0 text-[#1F5C52]" />
                   <span className="truncate">{file.originalName}</span>
                 </span>
                 <span className="hidden w-20 text-right font-mono text-xs text-[#8A8D89] sm:block">
@@ -1154,27 +1250,36 @@ function ListTable({
                 </span>
               </button>
             </li>
-          );
-        })}
+        ))}
       </ul>
     </div>
   );
 }
 
-function FileDetail({ file, assetUrl, onAssetError, onDownload, onShare, onToggleVisibility, onRename, onDelete }) {
-  const Icon = iconForMime(file.mimeType);
+function FileDetail({
+  file,
+  assetUrl,
+  onAssetError,
+  onDownload,
+  onShare,
+  onToggleVisibility,
+  onRename,
+  onDelete,
+  onMove,
+  onCopy,
+}) {
   return (
     <>
-      <div className="mb-6 flex justify-center rounded-lg bg-[#F7F6F2] p-6">
+      <div className="mb-5 flex justify-center rounded-lg bg-[#F7F6F2] p-5 sm:mb-6 sm:p-6">
         {file.mimeType.startsWith("image/") && assetUrl ? (
           <img
             src={assetUrl}
             alt={file.originalName}
-            className="max-h-56 rounded-md object-contain"
+            className="max-h-48 rounded-md object-contain sm:max-h-56"
             onError={onAssetError}
           />
         ) : (
-          <Icon size={72} className="text-[#1F5C52]" />
+          <MimeIcon mime={file.mimeType} size={64} className="text-[#1F5C52] sm:h-[72px] sm:w-[72px]" />
         )}
       </div>
 
@@ -1197,7 +1302,7 @@ function FileDetail({ file, assetUrl, onAssetError, onDownload, onShare, onToggl
         </div>
       </dl>
 
-      <div className="mt-7 flex flex-col gap-2.5">
+      <div className="mt-6 flex flex-col gap-2.5 sm:mt-7">
         <button onClick={onToggleVisibility} className="rounded-lg border border-[#E4E1DA] bg-white py-2.5 text-sm font-medium text-[#1B1D1B] hover:bg-[#F0EEE7]">{file.isPublic ? "Make private" : "Make public"}</button>
         <button
           onClick={onDownload}
@@ -1213,6 +1318,22 @@ function FileDetail({ file, assetUrl, onAssetError, onDownload, onShare, onToggl
           <Share2 size={16} />
           Share
         </button>
+        <div className="grid grid-cols-2 gap-2.5">
+          <button
+            onClick={onMove}
+            className="flex items-center justify-center gap-2 rounded-lg border border-[#E4E1DA] bg-white py-2.5 text-sm font-medium text-[#1B1D1B] hover:bg-[#F0EEE7] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C52] focus-visible:ring-offset-2"
+          >
+            <Move size={16} />
+            Move
+          </button>
+          <button
+            onClick={onCopy}
+            className="flex items-center justify-center gap-2 rounded-lg border border-[#E4E1DA] bg-white py-2.5 text-sm font-medium text-[#1B1D1B] hover:bg-[#F0EEE7] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C52] focus-visible:ring-offset-2"
+          >
+            <Copy size={16} />
+            Copy
+          </button>
+        </div>
         <div className="grid grid-cols-2 gap-2.5">
           <button
             onClick={onRename}
@@ -1234,11 +1355,11 @@ function FileDetail({ file, assetUrl, onAssetError, onDownload, onShare, onToggl
   );
 }
 
-function FolderDetail({ folder, share, onCopy, onShare, onRename, onDelete }) {
+function FolderDetail({ folder, share, onOpen, onCopy, onShare, onRename, onDelete, onMoveFolder, onCopyFolder }) {
   return (
     <>
-      <div className="mb-6 text-center">
-        <Folder size={64} className="mx-auto text-[#C9971C]" />
+      <div className="mb-5 text-center sm:mb-6">
+        <Folder size={56} className="mx-auto text-[#C9971C] sm:h-16 sm:w-16" />
         <h2 className="mt-3 break-words text-lg font-bold text-[#1B1D1B]">{folder.name}</h2>
         <p className="text-sm text-[#8A8D89]">Double-click the folder to open it.</p>
       </div>
@@ -1255,6 +1376,13 @@ function FolderDetail({ folder, share, onCopy, onShare, onRename, onDelete }) {
 
       <div className="mt-5 flex flex-col gap-2.5">
         <button
+          onClick={onOpen}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#1F5C52] bg-white py-2.5 text-sm font-medium text-[#1F5C52] hover:bg-[#EEF4F2]"
+        >
+          <Folder size={16} />
+          Open folder
+        </button>
+        <button
           onClick={onShare}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#1F5C52] py-2.5 text-sm font-medium text-white hover:bg-[#184A42] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C52] focus-visible:ring-offset-2"
         >
@@ -1262,11 +1390,182 @@ function FolderDetail({ folder, share, onCopy, onShare, onRename, onDelete }) {
           Share folder
         </button>
         <div className="grid grid-cols-2 gap-2.5">
+          <button onClick={onMoveFolder} className="flex items-center justify-center gap-2 rounded-lg border border-[#E4E1DA] bg-white py-2.5 text-sm font-medium text-[#1B1D1B] hover:bg-[#F0EEE7]"><Move size={16} />Move</button>
+          <button onClick={onCopyFolder} className="flex items-center justify-center gap-2 rounded-lg border border-[#E4E1DA] bg-white py-2.5 text-sm font-medium text-[#1B1D1B] hover:bg-[#F0EEE7]"><Copy size={16} />Copy</button>
+        </div>
+        <div className="grid grid-cols-2 gap-2.5">
           <button onClick={onRename} className="flex items-center justify-center gap-2 rounded-lg border border-[#E4E1DA] bg-white py-2.5 text-sm font-medium text-[#1B1D1B] hover:bg-[#F0EEE7]"><Pencil size={16} />Rename</button>
           <button onClick={onDelete} className="flex items-center justify-center gap-2 rounded-lg border border-[#F3D3CB] bg-white py-2.5 text-sm font-medium text-[#C4432B] hover:bg-[#FCEDE9]"><Trash2 size={16} />Delete</button>
         </div>
       </div>
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Move / Copy destination picker modal
+// ---------------------------------------------------------------------------
+
+function FolderPickerModal({ mode, type, item, busy, onClose, onConfirm }) {
+  // stack of visited folders: [{ uuid: null, name: 'My Drive' }, ...]
+  const [stack, setStack] = useState([{ uuid: null, name: "My Drive" }]);
+  const [subfolders, setSubfolders] = useState([]);
+  const [loadingList, setLoadingList] = useState(true);
+  const [listError, setListError] = useState(null);
+
+  const current = stack[stack.length - 1];
+  const itemName = type === "file" ? item.originalName : item.name;
+
+  useEffect(() => {
+    let cancelled = false;
+    // Reset this async request's state when navigating inside the picker.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoadingList(true);
+    setListError(null);
+
+    folderApi
+      .listFolders(current.uuid)
+      .then((list) => {
+        if (cancelled) return;
+        // Don't allow navigating into (or selecting) the folder being moved,
+        // to avoid moving it into itself.
+        const filtered =
+          type === "folder" ? list.filter((f) => f.uuid !== item.uuid) : list;
+        setSubfolders(filtered || []);
+      })
+      .catch(() => {
+        if (!cancelled) setListError("Couldn't load folders here.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingList(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current.uuid]);
+
+  const goInto = (folder) => setStack((s) => [...s, { uuid: folder.uuid, name: folder.name }]);
+  const goBack = () => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
+  const goToCrumb = (index) => setStack((s) => s.slice(0, index + 1));
+
+  // Can't drop a file/folder into the folder it's already directly in — still
+  // allowed, but flagged as a no-op via disabled state is unnecessary; keep simple.
+  const isSameAsSource = type === "folder" && current.uuid === item.uuid;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#1B1D1B]/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="flex w-full max-w-md flex-col rounded-t-2xl border border-[#E4E1DA] bg-white shadow-2xl sm:max-h-[85vh] sm:rounded-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3 border-b border-[#E4E1DA] px-4 py-3.5 sm:px-5">
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-bold text-[#1B1D1B]">
+              {mode === "move" ? "Move" : "Copy"} "{itemName}"
+            </h2>
+            <p className="text-xs text-[#8A8D89]">Choose a destination folder</p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            disabled={busy}
+            className="shrink-0 rounded p-1.5 text-[#8A8D89] hover:bg-[#F0EEE7] hover:text-[#1B1D1B] disabled:opacity-50"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-1 overflow-x-auto border-b border-[#EEECE5] px-4 py-2.5 font-mono text-xs uppercase tracking-wide text-[#8A8D89] sm:px-5">
+          <button
+            onClick={goBack}
+            disabled={stack.length === 1 || busy}
+            aria-label="Back"
+            className="mr-1 shrink-0 rounded p-1 text-[#5B5F5C] hover:bg-[#F0EEE7] disabled:opacity-30"
+          >
+            <ChevronLeft size={14} />
+          </button>
+          {stack.map((crumb, i) => (
+            <span key={crumb.uuid ?? "root"} className="flex shrink-0 items-center gap-1">
+              {i > 0 && <ChevronRight size={12} className="shrink-0" />}
+              <button
+                onClick={() => goToCrumb(i)}
+                disabled={busy}
+                className={`max-w-[100px] truncate rounded px-1.5 py-0.5 hover:bg-[#EAE7DF] ${
+                  i === stack.length - 1 ? "text-[#1B1D1B]" : ""
+                }`}
+              >
+                {crumb.name}
+              </button>
+            </span>
+          ))}
+        </div>
+
+        {/* Folder list */}
+        <div className="min-h-[220px] flex-1 overflow-y-auto px-2 py-2 sm:px-3">
+          {loadingList ? (
+            <div className="space-y-2 p-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-10 animate-pulse rounded-lg bg-[#F0EEE7]" />
+              ))}
+            </div>
+          ) : listError ? (
+            <div className="p-6 text-center text-sm text-[#C4432B]">{listError}</div>
+          ) : subfolders.length === 0 ? (
+            <div className="p-8 text-center text-sm text-[#8A8D89]">
+              No subfolders here.
+            </div>
+          ) : (
+            <ul className="divide-y divide-[#EEECE5]">
+              {subfolders.map((folder) => (
+                <li key={folder.uuid}>
+                  <button
+                    onClick={() => goInto(folder)}
+                    disabled={busy}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-[#1B1D1B] hover:bg-[#F7F6F2] disabled:opacity-50"
+                  >
+                    <Folder size={18} className="shrink-0 text-[#C9971C]" />
+                    <span className="truncate">{folder.name}</span>
+                    <ChevronRight size={14} className="ml-auto shrink-0 text-[#C7C3B8]" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex flex-col-reverse gap-2.5 border-t border-[#E4E1DA] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <p className="truncate text-xs text-[#8A8D89]">
+            Destination:&nbsp;<span className="font-medium text-[#1B1D1B]">{current.name}</span>
+          </p>
+          <div className="flex gap-2.5">
+            <button
+              onClick={onClose}
+              disabled={busy}
+              className="flex-1 rounded-lg border border-[#E4E1DA] bg-white px-4 py-2.5 text-sm font-medium text-[#1B1D1B] hover:bg-[#F0EEE7] disabled:opacity-50 sm:flex-none"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => onConfirm(current.uuid ? current : null)}
+              disabled={busy || isSameAsSource}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#1F5C52] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#184A42] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+            >
+              {mode === "move" ? <Move size={16} /> : <Copy size={16} />}
+              {busy ? "Working…" : mode === "move" ? "Move here" : "Copy here"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1281,7 +1580,7 @@ function UploadProgressPanel({ uploads, onCancel, onDismiss, onRetry }) {
 
   return (
     <div
-      className="fixed bottom-4 right-4 z-40 w-[calc(100%-2rem)] max-w-sm overflow-hidden rounded-xl border border-[#E4E1DA] bg-white shadow-xl sm:bottom-6 sm:right-6"
+      className="fixed bottom-0 right-0 z-40 w-full max-w-full overflow-hidden border border-[#E4E1DA] bg-white shadow-xl sm:bottom-6 sm:right-6 sm:w-[calc(100%-2rem)] sm:max-w-sm sm:rounded-xl"
       role="status"
       aria-live="polite"
     >
@@ -1293,7 +1592,7 @@ function UploadProgressPanel({ uploads, onCancel, onDismiss, onRetry }) {
         </span>
       </div>
 
-      <ul className="max-h-72 divide-y divide-[#EEECE5] overflow-y-auto">
+      <ul className="max-h-60 divide-y divide-[#EEECE5] overflow-y-auto sm:max-h-72">
         {uploads.map((u) => (
           <li key={u.id} className="px-4 py-3">
             <div className="flex items-start gap-3">
