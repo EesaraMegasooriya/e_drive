@@ -5,6 +5,7 @@ import com.eesara.drive.file.service.DriveFileService;
 import com.eesara.drive.folder.dto.CreateFolderRequest;
 import com.eesara.drive.folder.dto.FolderResponse;
 import com.eesara.drive.folder.dto.RenameFolderRequest;
+import com.eesara.drive.folder.dto.UpdateFolderCoverRequest;
 import com.eesara.drive.folder.entity.Folder;
 import com.eesara.drive.folder.repository.FolderRepository;
 import com.eesara.drive.security.service.CurrentUserService;
@@ -18,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.net.URI;
 
 @Service
 @RequiredArgsConstructor
@@ -65,6 +67,8 @@ public class FolderServiceImpl implements FolderService {
                 .owner(owner)
                 .parent(parent)
                 .path(path)
+                .coverImageUrl(normalizeImageUrl(request.getCoverImageUrl()))
+                .coverIcon(normalizeIcon(request.getCoverIcon()))
                 .build();
 
         folderRepository.save(folder);
@@ -244,6 +248,8 @@ public FolderResponse getFolder(String folderUuid) {
                 .owner(owner)
                 .parent(destination)
                 .path(path)
+                .coverImageUrl(source.getCoverImageUrl())
+                .coverIcon(source.getCoverIcon())
                 .isPublic(false)
                 .build());
 
@@ -340,12 +346,51 @@ private FolderResponse toResponse(Folder folder) {
                             : folder.getParent().getUuid()
             )
             .path(folder.getPath())
+            .coverImageUrl(folder.getCoverImageUrl())
+            .coverIcon(folder.getCoverIcon())
             .totalFolders(0L)
             .totalFiles(0L)
             .createdAt(folder.getCreatedAt())
             .updatedAt(folder.getUpdatedAt())
             .isPublic(Boolean.TRUE.equals(folder.getIsPublic()))
             .build();
+}
+
+@Override
+public FolderResponse updateCover(String folderUuid, UpdateFolderCoverRequest request) {
+    User owner = currentUserService.getCurrentUser();
+    Folder folder = ownedFolder(folderUuid, owner);
+    String imageUrl = normalizeImageUrl(request.getCoverImageUrl());
+    folder.setCoverImageUrl(imageUrl);
+    folder.setCoverIcon(imageUrl == null ? normalizeIcon(request.getCoverIcon()) : null);
+    return toResponse(folderRepository.save(folder));
+}
+
+private String normalizeImageUrl(String value) {
+    if (value == null || value.isBlank()) return null;
+    String trimmed = value.trim();
+    try {
+        URI uri = URI.create(trimmed);
+        if (!("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))
+                || uri.getHost() == null) {
+            throw new IllegalArgumentException();
+        }
+    } catch (IllegalArgumentException exception) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cover image must be a valid http or https URL");
+    }
+    if (trimmed.length() > 2048) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cover image URL is too long");
+    }
+    return trimmed;
+}
+
+private String normalizeIcon(String value) {
+    if (value == null || value.isBlank()) return null;
+    String trimmed = value.trim();
+    if (trimmed.codePointCount(0, trimmed.length()) > 4) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Folder icon must contain at most 4 characters");
+    }
+    return trimmed;
 }
 private void updateChildPaths(
         Folder folder,

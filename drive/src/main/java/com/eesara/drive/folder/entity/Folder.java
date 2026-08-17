@@ -46,6 +46,12 @@ public class Folder {
     @Column(nullable = false, length = 2000)
     private String path;
 
+    @Column(length = 2048)
+    private String coverImageUrl;
+
+    @Column(length = 32)
+    private String coverIcon;
+
     @Builder.Default
     private Boolean isDeleted = false;
 

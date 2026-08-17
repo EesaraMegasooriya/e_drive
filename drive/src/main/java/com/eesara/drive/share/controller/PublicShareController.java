@@ -4,6 +4,7 @@ import com.eesara.drive.share.entity.ShareLink;
 import com.eesara.drive.share.entity.ShareType;
 import com.eesara.drive.share.service.ShareService;
 import com.eesara.drive.share.dto.PublicFolderFileResponse;
+import com.eesara.drive.share.dto.PublicFolderMetadataResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
@@ -33,6 +34,11 @@ public class PublicShareController {
             @RequestParam(defaultValue = "100") int limit
     ) {
         return ResponseEntity.ok(shareService.getPublicFolderFiles(token, offset, limit));
+    }
+
+    @GetMapping("/folders/{token}/metadata")
+    public ResponseEntity<PublicFolderMetadataResponse> getFolderMetadata(@PathVariable String token) {
+        return ResponseEntity.ok(shareService.getPublicFolderMetadata(token));
     }
 
     /** Unlimited public API for integrations that need every direct file URL. */

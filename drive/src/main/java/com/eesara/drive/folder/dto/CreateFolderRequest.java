@@ -18,4 +18,8 @@ public class CreateFolderRequest {
      */
     private String parentUuid;
 
+    private String coverImageUrl;
+
+    private String coverIcon;
+
 }

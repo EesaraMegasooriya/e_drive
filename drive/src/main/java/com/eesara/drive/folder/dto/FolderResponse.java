@@ -19,6 +19,10 @@ public class FolderResponse {
 
     private String path;
 
+    private String coverImageUrl;
+
+    private String coverIcon;
+
     private Long totalFolders;
 
     private Long totalFiles;

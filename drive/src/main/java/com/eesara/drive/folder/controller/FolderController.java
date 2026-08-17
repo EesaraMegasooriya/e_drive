@@ -3,6 +3,7 @@ package com.eesara.drive.folder.controller;
 import com.eesara.drive.folder.dto.CreateFolderRequest;
 import com.eesara.drive.folder.dto.FolderResponse;
 import com.eesara.drive.folder.dto.RenameFolderRequest;
+import com.eesara.drive.folder.dto.UpdateFolderCoverRequest;
 import com.eesara.drive.folder.service.FolderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -93,5 +94,13 @@ public class FolderController {
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(folderService.copyFolder(uuid, parentUuid));
+    }
+
+    @PutMapping("/{uuid}/cover")
+    public ResponseEntity<FolderResponse> updateCover(
+            @PathVariable String uuid,
+            @RequestBody UpdateFolderCoverRequest request
+    ) {
+        return ResponseEntity.ok(folderService.updateCover(uuid, request));
     }
 }

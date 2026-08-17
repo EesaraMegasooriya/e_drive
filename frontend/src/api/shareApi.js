@@ -49,6 +49,13 @@ const shareApi = {
     return response.data;
   },
 
+  getPublicFolderMetadata: async (token) => {
+    const response = await axios.get(`/public/folders/${encodeURIComponent(token)}/metadata`, {
+      skipAuthRedirect: true,
+    });
+    return response.data;
+  },
+
   /**
    * Copy text to clipboard
    */

@@ -498,6 +498,46 @@ export default function Drive() {
     }
   };
 
+  const handleFolderCover = async () => {
+    if (!selectedFolder) return;
+    const result = await Swal.fire({
+      title: "Folder cover",
+      html: `<label class="swal2-input-label" for="folder-cover-url">Image URL</label><input id="folder-cover-url" class="swal2-input" type="url" placeholder="https://example.com/cover.jpg"><label class="swal2-input-label" for="folder-cover-icon">Or an icon / emoji</label><input id="folder-cover-icon" class="swal2-input" maxlength="8" placeholder="📁">`,
+      showCancelButton: true,
+      showDenyButton: Boolean(selectedFolder.coverImageUrl || selectedFolder.coverIcon),
+      confirmButtonText: "Save cover",
+      denyButtonText: "Remove cover",
+      didOpen: () => {
+        document.getElementById("folder-cover-url").value = selectedFolder.coverImageUrl || "";
+        document.getElementById("folder-cover-icon").value = selectedFolder.coverIcon || "";
+      },
+      preConfirm: () => {
+        const coverImageUrl = document.getElementById("folder-cover-url").value.trim();
+        const coverIcon = document.getElementById("folder-cover-icon").value.trim();
+        if (coverImageUrl) {
+          try {
+            const url = new URL(coverImageUrl);
+            if (!["http:", "https:"].includes(url.protocol)) throw new Error();
+          } catch {
+            Swal.showValidationMessage("Enter a valid http or https image URL");
+            return false;
+          }
+        }
+        return { coverImageUrl: coverImageUrl || null, coverIcon: coverImageUrl ? null : (coverIcon || null) };
+      },
+    });
+    if (result.isDismissed) return;
+    try {
+      const updated = await folderApi.updateCover(selectedFolder.uuid,
+        result.isDenied ? { coverImageUrl: null, coverIcon: null } : result.value);
+      setSelectedFolder(updated);
+      setFolders((items) => items.map((item) => item.uuid === updated.uuid ? updated : item));
+      toast.fire({ icon: "success", title: result.isDenied ? "Cover removed" : "Cover updated" });
+    } catch (error) {
+      Swal.fire({ icon: "error", title: "Couldn't update cover", text: error.response?.data?.message ?? "Please try again." });
+    }
+  };
+
   const handleFolderDelete = async () => {
     if (!selectedFolder) return;
 
@@ -1154,6 +1194,7 @@ export default function Drive() {
                   onDelete={handleFolderDelete}
                   onMoveFolder={() => openPicker("move", "folder", selectedFolder)}
                   onCopyFolder={() => openPicker("copy", "folder", selectedFolder)}
+                  onCover={handleFolderCover}
                 />
               ) : (
                 <div className="py-10 text-center sm:py-20">
@@ -1243,7 +1284,7 @@ function FolderCard({ folder, tag, active, checked, onToggle, onClick, onDoubleC
       <span className="absolute right-2.5 top-2.5 font-mono text-[10px] tracking-wide text-[#C7C3B8] sm:right-3 sm:top-3">
         {tag}
       </span>
-      <Folder size={30} className="mb-2 text-[#C9971C] sm:mb-3 sm:h-10 sm:w-10" />
+      <FolderCover folder={folder} className="mb-2 sm:mb-3" />
       <h3 className="truncate pr-8 text-sm font-semibold text-[#1B1D1B]">
         {folder.name}
       </h3>
@@ -1251,6 +1292,16 @@ function FolderCard({ folder, tag, active, checked, onToggle, onClick, onDoubleC
       <SelectionToggle checked={checked} label={`Select ${folder.name}`} onToggle={onToggle} />
     </button>
   );
+}
+
+function FolderCover({ folder, className = "", large = false }) {
+  if (folder.coverImageUrl) {
+    return <img src={folder.coverImageUrl} alt="" className={`${large ? "h-40 w-full" : "h-16 w-full sm:h-24"} ${className} rounded-lg object-cover`} loading="lazy" referrerPolicy="no-referrer" />;
+  }
+  if (folder.coverIcon) {
+    return <span className={`${large ? "text-6xl" : "text-4xl"} ${className} block leading-none`} aria-hidden="true">{folder.coverIcon}</span>;
+  }
+  return <Folder size={large ? 56 : 30} className={`${className} text-[#C9971C] sm:h-10 sm:w-10`} />;
 }
 
 function FileCard({ file, tag, active, checked, onToggle, onClick }) {
@@ -1443,11 +1494,11 @@ function FileDetail({
   );
 }
 
-function FolderDetail({ folder, share, onOpen, onCopy, onShare, onRename, onDelete, onMoveFolder, onCopyFolder }) {
+function FolderDetail({ folder, share, onOpen, onCopy, onShare, onRename, onDelete, onMoveFolder, onCopyFolder, onCover }) {
   return (
     <>
       <div className="mb-5 text-center sm:mb-6">
-        <Folder size={56} className="mx-auto text-[#C9971C] sm:h-16 sm:w-16" />
+        <FolderCover folder={folder} large className="mx-auto" />
         <h2 className="mt-3 break-words text-lg font-bold text-[#1B1D1B]">{folder.name}</h2>
         <p className="text-sm text-[#8A8D89]">Double-click the folder to open it.</p>
       </div>
@@ -1483,6 +1534,9 @@ function FolderDetail({ folder, share, onOpen, onCopy, onShare, onRename, onDele
         </div>
         <div className="grid grid-cols-2 gap-2.5">
           <button onClick={onRename} className="flex items-center justify-center gap-2 rounded-lg border border-[#E4E1DA] bg-white py-2.5 text-sm font-medium text-[#1B1D1B] hover:bg-[#F0EEE7]"><Pencil size={16} />Rename</button>
+          <button onClick={onCover} className="flex items-center justify-center gap-2 rounded-lg border border-[#E4E1DA] bg-white py-2.5 text-sm font-medium text-[#1B1D1B] hover:bg-[#F0EEE7]"><FileImage size={16} />Cover</button>
+        </div>
+        <div className="grid grid-cols-1 gap-2.5">
           <button onClick={onDelete} className="flex items-center justify-center gap-2 rounded-lg border border-[#F3D3CB] bg-white py-2.5 text-sm font-medium text-[#C4432B] hover:bg-[#FCEDE9]"><Trash2 size={16} />Delete</button>
         </div>
       </div>

@@ -3,6 +3,7 @@ package com.eesara.drive.folder.service;
 import com.eesara.drive.folder.dto.CreateFolderRequest;
 import com.eesara.drive.folder.dto.FolderResponse;
 import com.eesara.drive.folder.dto.RenameFolderRequest;
+import com.eesara.drive.folder.dto.UpdateFolderCoverRequest;
 
 import java.util.List;
 
@@ -34,5 +35,7 @@ public interface FolderService {
     FolderResponse moveFolder(String folderUuid, String parentUuid);
 
     FolderResponse copyFolder(String folderUuid, String parentUuid);
+
+    FolderResponse updateCover(String folderUuid, UpdateFolderCoverRequest request);
 
 }

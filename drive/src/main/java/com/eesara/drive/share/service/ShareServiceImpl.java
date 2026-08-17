@@ -10,6 +10,7 @@ import com.eesara.drive.share.dto.AssetUrlResponse;
 import com.eesara.drive.share.dto.CreateShareRequest;
 import com.eesara.drive.share.dto.ShareResponse;
 import com.eesara.drive.share.dto.PublicFolderFileResponse;
+import com.eesara.drive.share.dto.PublicFolderMetadataResponse;
 import com.eesara.drive.share.entity.ShareLink;
 import com.eesara.drive.share.entity.ShareType;
 import com.eesara.drive.share.repository.ShareLinkRepository;
@@ -248,6 +249,21 @@ public class ShareServiceImpl implements ShareService {
         files.sort(java.util.Comparator.comparing(PublicFolderFileResponse::getPath,
                 String.CASE_INSENSITIVE_ORDER));
         return files;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PublicFolderMetadataResponse getPublicFolderMetadata(String token) {
+        ShareLink share = getByToken(token);
+        if (share.getType() != ShareType.FOLDER || share.getFolder() == null) {
+            throw new RuntimeException("Not a folder share");
+        }
+        Folder folder = share.getFolder();
+        return PublicFolderMetadataResponse.builder()
+                .name(folder.getName())
+                .coverImageUrl(folder.getCoverImageUrl())
+                .coverIcon(folder.getCoverIcon())
+                .build();
     }
    
 

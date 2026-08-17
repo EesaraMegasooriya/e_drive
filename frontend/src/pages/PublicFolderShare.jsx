@@ -56,6 +56,7 @@ function errorMessage(error) {
 export default function PublicFolderShare() {
   const { token } = useParams();
   const [files, setFiles] = useState([]);
+  const [metadata, setMetadata] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
@@ -81,10 +82,14 @@ export default function PublicFolderShare() {
   useEffect(() => {
     let cancelled = false;
 
-    shareApi.getPublicFolderContents(token, 0, pageSize)
-      .then((data) => {
+    Promise.all([
+      shareApi.getPublicFolderContents(token, 0, pageSize),
+      shareApi.getPublicFolderMetadata(token),
+    ])
+      .then(([data, folderMetadata]) => {
         if (!cancelled) {
           setFiles(Array.isArray(data) ? data : []);
+          setMetadata(folderMetadata);
           setHasMore(Array.isArray(data) && data.length === pageSize);
           setError("");
         }
@@ -117,8 +122,8 @@ export default function PublicFolderShare() {
 
   const folderName = useMemo(() => {
     const firstPath = files[0]?.path;
-    return firstPath?.split("/").filter(Boolean)[0] || "Shared folder";
-  }, [files]);
+    return metadata?.name || firstPath?.split("/").filter(Boolean)[0] || "Shared folder";
+  }, [files, metadata]);
 
   return (
     <div className="min-h-screen bg-[#F7F6F2] font-[Inter,ui-sans-serif,system-ui] text-[#1B1D1B]">
@@ -144,10 +149,11 @@ export default function PublicFolderShare() {
 
         {!loading && !error && (
           <>
+            {metadata?.coverImageUrl && <img src={metadata.coverImageUrl} alt="" className="mb-6 h-48 w-full rounded-2xl object-cover shadow-sm sm:h-64" referrerPolicy="no-referrer" />}
             <section className="mb-7 flex flex-col gap-4 border-b border-[#E4E1DA] pb-6 sm:flex-row sm:items-end sm:justify-between">
               <div className="min-w-0">
                 <span className="font-mono text-xs uppercase tracking-wide text-[#1F5C52]">Public share</span>
-                <h1 className="mt-2 flex items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl"><FolderOpen className="shrink-0 text-[#C9971C]" size={30} /> <span className="truncate">{folderName}</span></h1>
+                <h1 className="mt-2 flex items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl">{metadata?.coverIcon ? <span aria-hidden="true">{metadata.coverIcon}</span> : <FolderOpen className="shrink-0 text-[#C9971C]" size={30} />} <span className="truncate">{folderName}</span></h1>
                 <p className="mt-2 text-sm text-[#5B5F5C]">{files.length}{hasMore ? "+" : ""} {files.length === 1 ? "file" : "files"} shared with you</p>
               </div>
             </section>
