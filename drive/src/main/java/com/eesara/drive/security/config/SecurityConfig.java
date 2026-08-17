@@ -120,7 +120,8 @@ public class SecurityConfig {
                         // Public endpoints
                         .requestMatchers(
                                 "/api/auth/**",
-                                "/api/public/**"
+                                "/api/public/**",
+                                "/error"
                         ).permitAll()
 
                         // Everything else requires login

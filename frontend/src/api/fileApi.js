@@ -49,7 +49,12 @@ const fileApi = {
       // POST is used for chunks because some CDN/WAF configurations strip
       // authentication from PUT requests. The operation remains offset-safe.
       const response = await axios.post(`/files/upload/resumable/${uploadId}`, body, {
-        params: { offset }, headers: uploadAuthHeaders, signal: options.signal,
+        params: { offset },
+        headers: {
+          ...uploadAuthHeaders,
+          "Content-Type": "multipart/form-data",
+        },
+        signal: options.signal,
       });
       offset = Number(response.data.offset);
       options.onUploadProgress?.({ loaded: offset, total: file.size, transferred: offset - initialOffset });
