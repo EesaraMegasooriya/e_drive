@@ -124,6 +124,28 @@ public class LocalStorageService implements StorageService {
         return folder + "/" + filename;
     }
 
+    @Override
+    public StorageStats stats() throws IOException {
+        Path root = Paths.get(properties.getLocation()).toAbsolutePath().normalize();
+        Files.createDirectories(root);
+        FileStore fileStore = Files.getFileStore(root);
+        return new StorageStats(fileStore.getTotalSpace(), fileStore.getUsableSpace());
+    }
+
+    @Override
+    public void deleteUserTemporaryData(String userUuid) throws IOException {
+        UUID.fromString(userUuid); // Reject unexpected path input.
+        Path chunksRoot = Paths.get(properties.getLocation(), ".tmp", "chunks")
+                .toAbsolutePath().normalize();
+        Path userDirectory = chunksRoot.resolve(userUuid).normalize();
+        if (!userDirectory.startsWith(chunksRoot) || !Files.exists(userDirectory)) return;
+        try (Stream<Path> paths = Files.walk(userDirectory)) {
+            for (Path path : paths.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                Files.deleteIfExists(path);
+            }
+        }
+    }
+
     @Scheduled(cron = "${storage.cleanup-cron:0 30 3 * * *}")
     public void cleanupTemporaryFiles() throws IOException {
         Path temporaryDirectory = Paths.get(properties.getLocation(), ".tmp");

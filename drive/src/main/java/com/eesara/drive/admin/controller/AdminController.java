@@ -7,12 +7,14 @@ import com.eesara.drive.folder.repository.FolderRepository;
 import com.eesara.drive.share.repository.ShareLinkRepository;
 import com.eesara.drive.user.entity.User;
 import com.eesara.drive.user.repository.UserRepository;
+import com.eesara.drive.storage.StorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -23,9 +25,25 @@ public class AdminController {
     private final FolderRepository folders;
     private final ShareLinkRepository shares;
     private final AdminUserService adminUserService;
+    private final StorageService storageService;
 
     @GetMapping("/overview")
-    public Map<String, Object> overview() { return Map.of("users", users.count(), "files", files.count(), "folders", folders.count(), "shares", shares.count()); }
+    public Map<String, Object> overview() throws IOException {
+        var storage = storageService.stats();
+        long applicationBytes = files.findAll().stream()
+                .mapToLong(file -> file.getFileSize() == null ? 0L : file.getFileSize())
+                .sum();
+        return Map.of(
+                "users", users.count(),
+                "files", files.count(),
+                "folders", folders.count(),
+                "shares", shares.count(),
+                "storageTotal", storage.totalBytes(),
+                "storageUsed", storage.usedBytes(),
+                "storageAvailable", storage.availableBytes(),
+                "applicationStorageUsed", applicationBytes
+        );
+    }
 
     @GetMapping("/users")
     public List<Map<String, Object>> listUsers() { return users.findAll().stream().map(this::user).toList(); }
@@ -56,7 +74,7 @@ public class AdminController {
 
     private Map<String, Object> user(User user) {
         long usedStorage = files.findByOwner(user).stream()
-                .mapToLong(file -> file.getFileSize())
+                .mapToLong(file -> file.getFileSize() == null ? 0L : file.getFileSize())
                 .sum();
 
         return Map.of(

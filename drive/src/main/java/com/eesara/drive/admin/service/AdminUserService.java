@@ -47,6 +47,12 @@ public class AdminUserService {
 
         List<DriveFile> userFiles = driveFileRepository.findByOwner(user);
 
+        try {
+            storageService.deleteUserTemporaryData(user.getUuid());
+        } catch (IOException exception) {
+            throw new IllegalStateException("Could not remove temporary uploads for this user", exception);
+        }
+
         // Share records reference files and folders, so remove them before their owners.
         shareLinkRepository.deleteAll(shareLinkRepository.findByOwnerId(user.getId()));
 

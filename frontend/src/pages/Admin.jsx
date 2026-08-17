@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ShieldCheck, Users, FileText, Folder, Link2, KeyRound, Trash2 } from "lucide-react";
+import { Users, FileText, Folder, Link2, KeyRound, Trash2, HardDrive } from "lucide-react";
 import Swal from "sweetalert2";
 import adminApi from "../api/adminApi";
 
@@ -19,6 +19,8 @@ export default function Admin() {
     setFiles(f);
   };
   useEffect(() => {
+    // Initial synchronization with the administration API.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load().catch(() => {});
   }, []);
   const toggle = async (user) => {
@@ -75,6 +77,16 @@ export default function Admin() {
         [Link2, "Public links", overview.shares],
       ]
     : [];
+  const storageTotal = overview?.storageTotal || 0;
+  const storageUsed = overview?.storageUsed || 0;
+  const storageAvailable = overview?.storageAvailable || 0;
+  const storagePercent = storageTotal > 0
+    ? Math.min(100, (storageUsed / storageTotal) * 100)
+    : 0;
+  const userStoragePercent = (user) => {
+    if (!user.storageLimit || user.storageLimit >= Number.MAX_SAFE_INTEGER) return 0;
+    return Math.min(100, (user.usedStorage / user.storageLimit) * 100);
+  };
   return (
     <div className="space-y-7">
       <div>
@@ -100,6 +112,27 @@ export default function Admin() {
           </div>
         ))}
       </div>
+      {overview && (
+        <section className="grid gap-4 rounded-xl border border-[#E4E1DA] bg-white p-5 shadow-sm md:grid-cols-[auto_1fr] md:items-center md:gap-7">
+          <div className="relative mx-auto h-36 w-36 shrink-0 rounded-full" style={{ background: `conic-gradient(#1F5C52 ${storagePercent}%, #E4E1DA 0)` }}>
+            <div className="absolute inset-4 flex flex-col items-center justify-center rounded-full bg-white text-center">
+              <HardDrive size={20} className="text-[#1F5C52]" />
+              <strong className="mt-1 text-lg text-[#1B1D1B]">{storagePercent.toFixed(1)}%</strong>
+              <span className="text-[11px] text-[#8A8D89]">disk used</span>
+            </div>
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-[#1B1D1B]">Server storage</h2>
+            <p className="mt-1 text-sm text-[#5B5F5C]">Capacity of the mounted upload volume.</p>
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <StorageMetric label="Available" value={formatBytes(storageAvailable)} accent />
+              <StorageMetric label="Disk used" value={formatBytes(storageUsed)} />
+              <StorageMetric label="Drive files" value={formatBytes(overview.applicationStorageUsed)} />
+            </div>
+            <p className="mt-3 text-xs text-[#8A8D89]">Total capacity: {formatBytes(storageTotal)}</p>
+          </div>
+        </section>
+      )}
       <div className="rounded-xl border border-[#E4E1DA] bg-white shadow-sm">
         <div className="flex gap-2 border-b border-[#E4E1DA] p-3">
           <button
@@ -116,7 +149,7 @@ export default function Admin() {
           </button>
         </div>
         {tab === "users" ? (
-          <table className="w-full text-left text-sm">
+          <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm">
             <thead className="text-xs text-[#8A8D89]">
               <tr>
                 <th className="p-4">User</th>
@@ -134,7 +167,13 @@ export default function Admin() {
                     <small className="block text-[#8A8D89]">{user.email}</small>
                   </td>
                   <td className="p-4">{user.role}</td>
-                  <td className="p-4 font-mono text-xs">{formatBytes(user.usedStorage)}</td>
+                  <td className="p-4">
+                    <div className="font-mono text-xs">{formatBytes(user.usedStorage)}</div>
+                    <div className="mt-1.5 h-1.5 w-28 overflow-hidden rounded-full bg-[#E4E1DA]">
+                      <div className="h-full rounded-full bg-[#1F5C52]" style={{ width: `${userStoragePercent(user)}%` }} />
+                    </div>
+                    <div className="mt-1 text-[10px] text-[#8A8D89]">{user.storageLimit >= Number.MAX_SAFE_INTEGER ? "Unlimited" : `of ${formatBytes(user.storageLimit)}`}</div>
+                  </td>
                   <td className="p-4">
                     {user.active ? "Active" : "Suspended"}
                   </td>
@@ -152,13 +191,14 @@ export default function Admin() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         ) : (
-          <table className="w-full text-left text-sm">
+          <div className="overflow-x-auto"><table className="w-full min-w-[620px] text-left text-sm">
             <thead className="text-xs text-[#8A8D89]">
               <tr>
                 <th className="p-4">File</th>
                 <th className="p-4">Owner</th>
+                <th className="p-4">Size</th>
                 <th className="p-4">Visibility</th>
               </tr>
             </thead>
@@ -167,15 +207,20 @@ export default function Admin() {
                 <tr key={file.uuid} className="border-t border-[#EEECE5]">
                   <td className="p-4">{file.name}</td>
                   <td className="p-4">{file.owner}</td>
+                  <td className="p-4 font-mono text-xs">{formatBytes(file.size)}</td>
                   <td className="p-4">
                     {file.isPublic ? "Public" : "Private"}
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
     </div>
   );
+}
+
+function StorageMetric({ label, value, accent = false }) {
+  return <div className={`rounded-lg border p-3 ${accent ? "border-[#B9D2CD] bg-[#EEF4F2]" : "border-[#EEECE5] bg-[#FAF9F6]"}`}><p className="text-xs text-[#8A8D89]">{label}</p><p className="mt-1 font-mono text-sm font-semibold text-[#1B1D1B]">{value}</p></div>;
 }

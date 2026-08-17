@@ -20,4 +20,8 @@ public interface StorageService {
 
     String copy(String storagePath) throws IOException;
 
+    StorageStats stats() throws IOException;
+
+    void deleteUserTemporaryData(String userUuid) throws IOException;
+
 }
