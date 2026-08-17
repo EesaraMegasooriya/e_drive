@@ -56,7 +56,7 @@ public class ResumableUploadController {
                 "chunkSize", CHUNK_SIZE);
     }
 
-    @PutMapping("/{uploadId}")
+    @RequestMapping(value = "/{uploadId}", method = {RequestMethod.POST, RequestMethod.PUT})
     public Map<String, Long> append(@PathVariable String uploadId,
                                     @RequestParam long offset,
                                     @RequestParam("chunk") MultipartFile chunk) throws IOException {
