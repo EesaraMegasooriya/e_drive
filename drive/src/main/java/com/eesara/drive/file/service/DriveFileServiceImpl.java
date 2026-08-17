@@ -40,9 +40,12 @@ public class DriveFileServiceImpl implements DriveFileService {
             String folderUuid) throws IOException {
 
         User owner = currentUserService.getCurrentUser();
+        // Multipart implementations backed by a temporary path may move that
+        // path during save(), so capture immutable metadata before storage.
+        long uploadedFileSize = file.getSize();
 
         long remainingStorage = Math.max(0L, owner.getStorageLimit() - owner.getUsedStorage());
-        if (file.getSize() > remainingStorage) {
+        if (uploadedFileSize > remainingStorage) {
             throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Storage quota exceeded");
         }
 
@@ -64,7 +67,7 @@ public class DriveFileServiceImpl implements DriveFileService {
         String storagePath = storageService.save(file);
 
         String checksum = null;
-        if (file.getSize() <= 64L * 1024 * 1024) {
+        if (uploadedFileSize <= 64L * 1024 * 1024) {
             checksum = storageService.checksum(storagePath);
             if (driveFileRepository.existsByOwnerAndChecksumAndDeletedFalse(owner, checksum)) {
                 storageService.delete(storagePath);
@@ -91,13 +94,13 @@ public class DriveFileServiceImpl implements DriveFileService {
                 .storedName(storedName)
                 .mimeType(file.getContentType())
                 .extension(extension)
-                .fileSize(file.getSize())
+                .fileSize(uploadedFileSize)
                 .storagePath(storagePath)
                 .checksum(checksum)
                 .build();
 
         driveFileRepository.save(driveFile);
-        owner.setUsedStorage(owner.getUsedStorage() + file.getSize());
+        owner.setUsedStorage(owner.getUsedStorage() + uploadedFileSize);
         userRepository.save(owner);
 
         return UploadFileResponse.builder()

@@ -14,6 +14,8 @@ public interface DriveFileRepository extends JpaRepository<DriveFile, Long> {
 
     Optional<DriveFile> findFirstByChecksumIsNullAndDeletedFalseOrderByCreatedAtAsc();
 
+    List<DriveFile> findByFileSize(Long fileSize);
+
     boolean existsByOwnerAndChecksumAndDeletedFalse(User owner, String checksum);
 
     List<DriveFile> findByOwner(User owner);
