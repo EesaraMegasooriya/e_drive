@@ -16,6 +16,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import com.eesara.drive.common.ApiException;
+import org.springframework.security.authentication.BadCredentialsException;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -40,13 +43,16 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void register(RegisterRequest request) {
 
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already exists");
+        String email = request.getEmail().trim().toLowerCase();
+
+        if (userRepository.existsByEmailIgnoreCase(email)) {
+            throw new ApiException(HttpStatus.CONFLICT, "EMAIL_EXISTS",
+                    "An account already exists with this email address.");
         }
 
         User user = User.builder()
                 .name(request.getName())
-                .email(request.getEmail())
+                .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(Role.USER)
                 .build();
@@ -57,15 +63,21 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginResponse login(LoginRequest request) {
 
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
+        String email = request.getEmail().trim().toLowerCase();
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "EMAIL_NOT_FOUND",
+                        "No account was found with this email address."));
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_SUSPENDED",
+                    "This account has been suspended. Contact an administrator.");
+        }
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        try {
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, request.getPassword()));
+        } catch (BadCredentialsException exception) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "INCORRECT_PASSWORD",
+                    "The password you entered is incorrect.");
+        }
 
         String token = jwtService.generateToken(user.getEmail());
 
@@ -101,11 +113,13 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void resetPassword(ResetPasswordRequest request) {
         User user = userRepository.findByPasswordResetTokenHash(hashToken(request.getToken()))
-                .orElseThrow(() -> new RuntimeException("This reset link is invalid or has expired"));
+                .orElseThrow(() -> new ApiException(HttpStatus.GONE, "INVALID_RESET_LINK",
+                        "This reset link is invalid or has expired."));
 
         if (user.getPasswordResetExpiresAt() == null
                 || user.getPasswordResetExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("This reset link is invalid or has expired");
+            throw new ApiException(HttpStatus.GONE, "INVALID_RESET_LINK",
+                    "This reset link is invalid or has expired.");
         }
 
         user.setPassword(passwordEncoder.encode(request.getPassword()));

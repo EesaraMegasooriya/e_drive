@@ -33,6 +33,7 @@ import fileApi from "../api/fileApi";
 import folderApi from "../api/folderApi";
 import driveApi from "../api/driveApi";
 import shareApi from "../api/shareApi";
+import bulkApi from "../api/bulkApi";
 
 // ---------------------------------------------------------------------------
 // Small helpers
@@ -125,6 +126,7 @@ export default function Drive() {
   // { mode: 'move' | 'copy', type: 'file' | 'folder', item } | null
   const [picker, setPicker] = useState(null);
   const [pickerBusy, setPickerBusy] = useState(false);
+  const [selectedItems, setSelectedItems] = useState(() => new Set());
 
   // ---- Upload queue (supports multiple concurrent uploads with progress) ----
   // Each entry: { id, name, size, progress (0-100), status: 'uploading' | 'success' | 'error', error, controller }
@@ -161,6 +163,7 @@ export default function Drive() {
         setSelectedFile(null);
         setSelectedFolder(null);
         setFolderShare(null);
+        setSelectedItems(new Set());
       }
     } catch (error) {
       Swal.fire({
@@ -264,6 +267,22 @@ export default function Drive() {
   const isEmpty = folders.length === 0 && files.length === 0;
   const noResults =
     !isEmpty && filteredFolders.length === 0 && filteredFiles.length === 0;
+  const bulkSelection = useMemo(() => ({
+    fileUuids: [...selectedItems].filter((key) => key.startsWith("file:" )).map((key) => key.slice(5)),
+    folderUuids: [...selectedItems].filter((key) => key.startsWith("folder:" )).map((key) => key.slice(7)),
+  }), [selectedItems]);
+  const selectedCount = selectedItems.size;
+
+  const toggleSelected = (type, uuid) => {
+    const key = `${type}:${uuid}`;
+    setSelectedItems((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  const clearSelected = () => setSelectedItems(new Set());
 
   // -------------------------------------------------------------------------
   // Upload queue helpers
@@ -717,7 +736,9 @@ export default function Drive() {
 
     setPickerBusy(true);
     try {
-      if (type === "file") {
+      if (type === "bulk") {
+        await bulkApi[mode](item.selection, destFolderUuid);
+      } else if (type === "file") {
         if (mode === "move") {
           await fileApi.moveFile(item.uuid, destFolderUuid);
         } else {
@@ -733,12 +754,13 @@ export default function Drive() {
 
       toast.fire({
         icon: "success",
-        title: `${type === "file" ? item.originalName : item.name} ${
+        title: `${type === "bulk" ? `${item.count} items` : type === "file" ? item.originalName : item.name} ${
           mode === "move" ? "moved" : "copied"
         }${destination ? ` to "${destination.name}"` : " to My Drive"}`,
       });
 
       setPicker(null);
+      clearSelected();
       await loadDrive(currentFolder?.uuid ?? null);
     } catch (error) {
       Swal.fire({
@@ -748,6 +770,44 @@ export default function Drive() {
       });
     } finally {
       setPickerBusy(false);
+    }
+  };
+
+  const deleteSelected = async () => {
+    if (!selectedCount) return;
+    const result = await Swal.fire({
+      icon: "warning",
+      title: `Delete ${selectedCount} selected item${selectedCount === 1 ? "" : "s"}?`,
+      text: "Selected folders and everything inside them will be permanently deleted.",
+      showCancelButton: true,
+      confirmButtonText: "Delete selected",
+      confirmButtonColor: "#C4432B",
+    });
+    if (!result.isConfirmed) return;
+    try {
+      await bulkApi.delete(bulkSelection);
+      clearSelected();
+      await loadDrive(currentFolder?.uuid ?? null);
+      toast.fire({ icon: "success", title: "Selected items deleted" });
+    } catch (error) {
+      Swal.fire({ icon: "error", title: "Delete failed", text: error.response?.data?.message ?? "Please try again." });
+    }
+  };
+
+  const downloadSelected = async () => {
+    if (!selectedCount) return;
+    try {
+      const response = await bulkApi.download(bulkSelection);
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "drive-selection.zip";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      Swal.fire({ icon: "error", title: "Download failed", text: error.response?.data?.message ?? "Please try again." });
     }
   };
 
@@ -993,6 +1053,17 @@ export default function Drive() {
           </div>
         </div>
 
+        {selectedCount > 0 && (
+          <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-[#B9D2CD] bg-[#EEF4F2] p-3">
+            <span className="mr-auto text-sm font-semibold text-[#1F5C52]">{selectedCount} selected</span>
+            <button onClick={() => openPicker("move", "bulk", { name: `${selectedCount} selected items`, count: selectedCount, selection: bulkSelection })} className="inline-flex items-center gap-1.5 rounded-lg border border-[#B9D2CD] bg-white px-3 py-2 text-xs font-medium"><Move size={14} />Move</button>
+            <button onClick={() => openPicker("copy", "bulk", { name: `${selectedCount} selected items`, count: selectedCount, selection: bulkSelection })} className="inline-flex items-center gap-1.5 rounded-lg border border-[#B9D2CD] bg-white px-3 py-2 text-xs font-medium"><Copy size={14} />Copy</button>
+            <button onClick={downloadSelected} className="inline-flex items-center gap-1.5 rounded-lg border border-[#B9D2CD] bg-white px-3 py-2 text-xs font-medium"><Download size={14} />ZIP</button>
+            <button onClick={deleteSelected} className="inline-flex items-center gap-1.5 rounded-lg border border-[#F3D3CB] bg-white px-3 py-2 text-xs font-medium text-[#C4432B]"><Trash2 size={14} />Delete</button>
+            <button onClick={clearSelected} aria-label="Clear selection" className="rounded p-2 text-[#5B5F5C] hover:bg-white"><X size={15} /></button>
+          </div>
+        )}
+
         {/* Main layout */}
         <div className="grid grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-12 lg:gap-8">
           {/* LEFT: browser */}
@@ -1015,6 +1086,8 @@ export default function Drive() {
                     folder={folder}
                     tag={catalogTag("D", i)}
                     active={selectedFolder?.uuid === folder.uuid}
+                    checked={selectedItems.has(`folder:${folder.uuid}`)}
+                    onToggle={() => toggleSelected("folder", folder.uuid)}
                     onClick={() => selectFolder(folder)}
                     onDoubleClick={() => openFolder(folder)}
                   />
@@ -1025,6 +1098,8 @@ export default function Drive() {
                     file={file}
                     tag={catalogTag("F", i)}
                     active={selectedFile?.uuid === file.uuid}
+                    checked={selectedItems.has(`file:${file.uuid}`)}
+                    onToggle={() => toggleSelected("file", file.uuid)}
                     onClick={() => {
                       setSelectedFolder(null);
                       setFolderShare(null);
@@ -1041,6 +1116,8 @@ export default function Drive() {
                 selectedFolder={selectedFolder}
                 onFolderClick={selectFolder}
                 onFolderDoubleClick={openFolder}
+                selectedItems={selectedItems}
+                onToggleSelected={toggleSelected}
                 onFileClick={(file) => {
                   setSelectedFolder(null);
                   setFolderShare(null);
@@ -1149,7 +1226,11 @@ function EmptyState({ onUpload }) {
   );
 }
 
-function FolderCard({ folder, tag, active, onClick, onDoubleClick }) {
+function SelectionToggle({ checked, label, onToggle }) {
+  return <span role="checkbox" aria-checked={checked} aria-label={label} tabIndex={0} onClick={(event) => { event.stopPropagation(); onToggle(); }} onKeyDown={(event) => { if (event.key === " " || event.key === "Enter") { event.preventDefault(); event.stopPropagation(); onToggle(); } }} className={`absolute bottom-2.5 right-2.5 flex h-5 w-5 items-center justify-center rounded border text-white sm:bottom-3 sm:right-3 ${checked ? "border-[#1F5C52] bg-[#1F5C52]" : "border-[#C7C3B8] bg-white"}`}>{checked && <CheckCircle2 size={14} />}</span>;
+}
+
+function FolderCard({ folder, tag, active, checked, onToggle, onClick, onDoubleClick }) {
   return (
     <button
       onClick={onClick}
@@ -1167,11 +1248,12 @@ function FolderCard({ folder, tag, active, onClick, onDoubleClick }) {
         {folder.name}
       </h3>
       <p className="mt-1 hidden text-xs text-[#8A8D89] sm:block">Double-click to open</p>
+      <SelectionToggle checked={checked} label={`Select ${folder.name}`} onToggle={onToggle} />
     </button>
   );
 }
 
-function FileCard({ file, tag, active, onClick }) {
+function FileCard({ file, tag, active, checked, onToggle, onClick }) {
   return (
     <button
       onClick={onClick}
@@ -1189,6 +1271,7 @@ function FileCard({ file, tag, active, onClick }) {
       <p className="mt-1 truncate font-mono text-[11px] text-[#8A8D89] sm:text-xs">
         {formatBytes(file.fileSize)} · {formatDate(file.createdAt)}
       </p>
+      <SelectionToggle checked={checked} label={`Select ${file.originalName}`} onToggle={onToggle} />
     </button>
   );
 }
@@ -1201,13 +1284,16 @@ function ListTable({
   onFolderClick,
   onFolderDoubleClick,
   onFileClick,
+  selectedItems,
+  onToggleSelected,
 }) {
   return (
     <div className="overflow-hidden rounded-xl border border-[#E4E1DA] bg-white shadow-sm">
-      <div className="grid grid-cols-[1fr_auto_auto] gap-3 border-b border-[#E4E1DA] bg-[#FAF9F6] px-3 py-2.5 font-mono text-[11px] uppercase tracking-wide text-[#8A8D89] sm:gap-4 sm:px-5">
+      <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 border-b border-[#E4E1DA] bg-[#FAF9F6] px-3 py-2.5 font-mono text-[11px] uppercase tracking-wide text-[#8A8D89] sm:gap-4 sm:px-5">
         <span>Name</span>
         <span className="hidden w-20 text-right sm:block">Size</span>
         <span className="w-16 text-right sm:w-24">Modified</span>
+        <span className="w-5" />
       </div>
       <ul className="divide-y divide-[#EEECE5]">
         {folders.map((folder) => (
@@ -1215,7 +1301,7 @@ function ListTable({
             <button
               onClick={() => onFolderClick(folder)}
               onDoubleClick={() => onFolderDoubleClick(folder)}
-              className={`grid w-full grid-cols-[1fr_auto_auto] items-center gap-3 px-3 py-3 text-left hover:bg-[#F7F6F2] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1F5C52] sm:gap-4 sm:px-5 ${
+              className={`grid w-full grid-cols-[1fr_auto_auto_auto] items-center gap-3 px-3 py-3 text-left hover:bg-[#F7F6F2] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1F5C52] sm:gap-4 sm:px-5 ${
                 selectedFolder?.uuid === folder.uuid ? "bg-[#EEF4F2]" : ""
               }`}
             >
@@ -1227,6 +1313,7 @@ function ListTable({
               <span className="w-16 text-right font-mono text-xs text-[#8A8D89] sm:w-24">
                 {formatDate(folder.createdAt)}
               </span>
+              <span role="checkbox" aria-checked={selectedItems.has(`folder:${folder.uuid}`)} onClick={(event) => { event.stopPropagation(); onToggleSelected("folder", folder.uuid); }} className={`flex h-5 w-5 items-center justify-center rounded border text-white ${selectedItems.has(`folder:${folder.uuid}`) ? "border-[#1F5C52] bg-[#1F5C52]" : "border-[#C7C3B8] bg-white"}`}>{selectedItems.has(`folder:${folder.uuid}`) && <CheckCircle2 size={14} />}</span>
             </button>
           </li>
         ))}
@@ -1234,7 +1321,7 @@ function ListTable({
             <li key={file.uuid}>
               <button
                 onClick={() => onFileClick(file)}
-                className={`grid w-full grid-cols-[1fr_auto_auto] items-center gap-3 px-3 py-3 text-left hover:bg-[#F7F6F2] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1F5C52] sm:gap-4 sm:px-5 ${
+                className={`grid w-full grid-cols-[1fr_auto_auto_auto] items-center gap-3 px-3 py-3 text-left hover:bg-[#F7F6F2] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1F5C52] sm:gap-4 sm:px-5 ${
                   selectedFile?.uuid === file.uuid ? "bg-[#EEF4F2]" : ""
                 }`}
               >
@@ -1248,6 +1335,7 @@ function ListTable({
                 <span className="w-16 text-right font-mono text-xs text-[#8A8D89] sm:w-24">
                   {formatDate(file.createdAt)}
                 </span>
+                <span role="checkbox" aria-checked={selectedItems.has(`file:${file.uuid}`)} onClick={(event) => { event.stopPropagation(); onToggleSelected("file", file.uuid); }} className={`flex h-5 w-5 items-center justify-center rounded border text-white ${selectedItems.has(`file:${file.uuid}`) ? "border-[#1F5C52] bg-[#1F5C52]" : "border-[#C7C3B8] bg-white"}`}>{selectedItems.has(`file:${file.uuid}`) && <CheckCircle2 size={14} />}</span>
               </button>
             </li>
         ))}

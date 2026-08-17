@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import authApi from "../api/authApi";
+import { authErrorDetails } from "../api/authError";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -74,12 +75,11 @@ export default function Register() {
       });
       navigate("/login");
     } catch (error) {
+      const details = authErrorDetails(error, "create your account");
       Swal.fire({
         icon: "error",
-        title: "Couldn't create your account",
-        text:
-          error.response?.data?.message ??
-          "Please check your details and try again.",
+        title: details.title,
+        text: details.text,
         confirmButtonColor: "#1F5C52",
       });
     } finally {

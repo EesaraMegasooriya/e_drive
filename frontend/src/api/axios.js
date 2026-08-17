@@ -37,6 +37,7 @@ export function clearStoredAuth() {
 }
 
 function redirectToLogin() {
+  sessionStorage.setItem("auth_notice", "session_expired");
   clearStoredAuth();
 
   if (window.location.pathname !== "/login") {
@@ -88,6 +89,7 @@ axiosInstance.interceptors.response.use(
     // returned 401. Expired tokens are handled before requests are sent.
     if (error.response?.status === 401
         && !error.config?.skipAuthRedirect
+        && !!getStoredToken()
         && isStoredTokenExpired()) {
       redirectToLogin();
     }

@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Check, Lock } from "lucide-react";
 import authApi from "../api/authApi";
 import { AuthCard } from "./ForgotPassword";
+import { authErrorDetails } from "../api/authError";
 
 export default function ResetPassword() {
   const [params] = useSearchParams();
@@ -19,7 +20,7 @@ export default function ResetPassword() {
     if (password.length < 6) return setError("Use at least 6 characters.");
     if (password !== confirmation) return setError("Passwords do not match.");
     try { setLoading(true); setError(""); await authApi.resetPassword(token, password); navigate("/login", { state: { passwordReset: true } }); }
-    catch (requestError) { setError(requestError.response?.data?.message ?? "This reset link is invalid or has expired."); }
+    catch (requestError) { setError(authErrorDetails(requestError, "reset your password").text); }
     finally { setLoading(false); }
   };
 

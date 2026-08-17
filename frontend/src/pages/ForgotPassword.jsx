@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Mail, Send } from "lucide-react";
 import authApi from "../api/authApi";
+import { authErrorDetails } from "../api/authError";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -21,7 +22,7 @@ export default function ForgotPassword() {
       await authApi.requestPasswordReset(email.trim());
       setSent(true);
     } catch (requestError) {
-      setError(requestError.response?.data?.message ?? "We couldn't send the reset email. Please try again.");
+      setError(authErrorDetails(requestError, "send the reset email").text);
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import Swal from "sweetalert2";
 import {
   LogIn,
@@ -14,15 +14,28 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "../contexts/AuthContext";
+import { authErrorDetails } from "../api/authError";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    const notice = sessionStorage.getItem("auth_notice");
+    if (notice === "session_expired") {
+      sessionStorage.removeItem("auth_notice");
+      Swal.fire({ icon: "info", title: "Session expired", text: "Please sign in again to continue.", confirmButtonColor: "#1F5C52" });
+    } else if (location.state?.passwordReset) {
+      Swal.fire({ icon: "success", title: "Password updated", text: "Sign in with your new password.", confirmButtonColor: "#1F5C52" });
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -58,12 +71,11 @@ export default function Login() {
 
       navigate(response.user?.role === "ADMIN" ? "/admin" : "/drive");
     } catch (error) {
+      const details = authErrorDetails(error, "sign you in");
       Swal.fire({
         icon: "error",
-        title: "Couldn't sign you in",
-        text:
-          error.response?.data?.message ??
-          "Check your email and password and try again.",
+        title: details.title,
+        text: details.text,
         confirmButtonColor: "#1F5C52",
       });
     } finally {
