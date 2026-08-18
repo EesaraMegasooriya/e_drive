@@ -7,7 +7,7 @@ services:
 
     environment:
       MYSQL_DATABASE: drive
-      MYSQL_USER: drive
+      MYSQL_USER: eesara
       MYSQL_PASSWORD: eesara123
       MYSQL_ROOT_PASSWORD: eesara123
 
@@ -31,7 +31,7 @@ services:
     environment:
       DB_HOST: mysql
       DB_DATABASE: drive
-      DB_USER: drive
+      DB_USER: eesara
       DB_PASSWORD: eesara123
 
       APP_BASE_URL: https://drive.eesara.com
