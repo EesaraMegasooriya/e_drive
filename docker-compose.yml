@@ -7,12 +7,23 @@ services:
 
     environment:
       MYSQL_DATABASE: drive
-      MYSQL_USER: eesara
+      MYSQL_USER: drive
       MYSQL_PASSWORD: eesara123
       MYSQL_ROOT_PASSWORD: eesara123
 
     volumes:
       - mysql_data:/var/lib/mysql
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
 
     networks:
       - edrive-network
@@ -26,19 +37,27 @@ services:
     restart: unless-stopped
 
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
 
     environment:
       DB_HOST: mysql
       DB_DATABASE: drive
-      DB_USER: eesara
+      DB_USER: drive
       DB_PASSWORD: eesara123
+
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/drive?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: drive
+      SPRING_DATASOURCE_PASSWORD: eesara123
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
 
       APP_BASE_URL: https://drive.eesara.com
       APP_FRONTEND_URL: https://drive.eesara.com
       PUBLIC_BASE_URL: https://drive.eesara.com
+
       SERVICE_API_KEYS_ENABLED: "true"
       SERVICE_API_KEY_PREFIX: edrive_
+
       WISHES_MAX_IMAGE_SIZE_MB: "10"
 
       STORAGE_LOCATION: /app/uploads
