@@ -33,7 +33,8 @@ public class LocalStorageService implements StorageService {
         String original = file.getOriginalFilename();
 
         if (original != null && original.contains(".")) {
-            extension = original.substring(original.lastIndexOf("."));
+            String candidate = original.substring(original.lastIndexOf(".") + 1);
+            if (candidate.matches("[A-Za-z0-9]{1,10}")) extension = "." + candidate.toLowerCase(java.util.Locale.ROOT);
         }
 
         String filename = UUID.randomUUID() + extension;

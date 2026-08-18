@@ -5,6 +5,8 @@ import com.eesara.drive.share.entity.ShareType;
 import com.eesara.drive.share.service.ShareService;
 import com.eesara.drive.share.dto.PublicFolderFileResponse;
 import com.eesara.drive.share.dto.PublicFolderMetadataResponse;
+import com.eesara.drive.share.dto.StreamPlaybackResponse;
+import com.eesara.drive.share.service.VideoStreamService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
@@ -22,6 +24,31 @@ import java.util.List;
 public class PublicShareController {
 
     private final ShareService shareService;
+    private final VideoStreamService videoStreamService;
+
+    @GetMapping("/folders/{token}/assets/{fileUuid}/playback")
+    public StreamPlaybackResponse getPlayback(@PathVariable String token, @PathVariable String fileUuid) {
+        var share = shareService.getByToken(token);
+        if (share.getFolder() == null || !Boolean.TRUE.equals(share.getFolder().getIsStreaming()))
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN, "Streaming is not enabled for this folder");
+        return videoStreamService.prepare(token, fileUuid, shareService.getSharedFolderDownload(token, fileUuid));
+    }
+
+    @GetMapping("/folders/{token}/streams/{fileUuid}/{name:.+}")
+    public ResponseEntity<Resource> getStreamResource(@PathVariable String token, @PathVariable String fileUuid,
+                                                       @PathVariable String name) {
+        var share = shareService.getByToken(token);
+        if (share.getFolder() == null || !Boolean.TRUE.equals(share.getFolder().getIsStreaming()))
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN, "Streaming is not enabled for this folder");
+        shareService.getSharedFolderDownload(token, fileUuid); // validates token and membership
+        Resource resource = videoStreamService.resource(fileUuid, name);
+        MediaType type = name.endsWith(".m3u8") ? MediaType.parseMediaType("application/vnd.apple.mpegurl")
+                : name.endsWith(".vtt") ? MediaType.parseMediaType("text/vtt") : MediaType.parseMediaType("video/mp2t");
+        return ResponseEntity.ok().cacheControl(CacheControl.maxAge(java.time.Duration.ofHours(6)))
+                .contentType(type).body(resource);
+    }
 
     /**
      * Lists every non-deleted file in a shared folder, including files in nested folders.

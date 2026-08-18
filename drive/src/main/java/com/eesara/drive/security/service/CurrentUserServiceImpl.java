@@ -5,6 +5,7 @@ import com.eesara.drive.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import com.eesara.drive.apikey.ApiKeyPrincipal;
 
 @Service
 @RequiredArgsConstructor
@@ -14,6 +15,9 @@ public class CurrentUserServiceImpl implements CurrentUserService {
 
     @Override
     public User getCurrentUser() {
+
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof ApiKeyPrincipal apiKey) return apiKey.getUser();
 
         String email = SecurityContextHolder
                 .getContext()

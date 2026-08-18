@@ -33,4 +33,6 @@ public class FolderResponse {
 
     private Boolean isPublic;
 
+    private Boolean isStreaming;
+
 }

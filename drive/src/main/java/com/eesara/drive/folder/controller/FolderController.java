@@ -79,6 +79,11 @@ public class FolderController {
         return ResponseEntity.ok(folderService.setPublic(uuid, isPublic));
     }
 
+    @PutMapping("/{uuid}/streaming")
+    public ResponseEntity<FolderResponse> setStreaming(@PathVariable String uuid, @RequestParam boolean enabled) {
+        return ResponseEntity.ok(folderService.setStreaming(uuid, enabled));
+    }
+
     @PutMapping("/{uuid}/move")
     public ResponseEntity<FolderResponse> moveFolder(
             @PathVariable String uuid,

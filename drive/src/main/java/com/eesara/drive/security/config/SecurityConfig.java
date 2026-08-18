@@ -1,6 +1,7 @@
 package com.eesara.drive.security.config;
 
 import com.eesara.drive.security.jwt.JwtAuthenticationFilter;
+import com.eesara.drive.apikey.ApiKeyAuthenticationFilter;
 import com.eesara.drive.security.service.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,6 +33,7 @@ public class SecurityConfig {
     private String frontendUrl;
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ApiKeyAuthenticationFilter apiKeyAuthenticationFilter;
     private final CustomUserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
 
@@ -109,8 +111,16 @@ public class SecurityConfig {
                 // Expired or invalid JWTs must be reported as 401 so the
                 // frontend can reliably clear the session and return to login.
                 .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint((request, response, exception) ->
-                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED))
+                        .authenticationEntryPoint((request, response, exception) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"success\":false,\"status\":401,\"code\":\"AUTHENTICATION_REQUIRED\",\"message\":\"Authentication is required.\",\"fieldErrors\":{}}");
+                        })
+                        .accessDeniedHandler((request, response, exception) -> {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"success\":false,\"status\":403,\"code\":\"ACCESS_DENIED\",\"message\":\"Access denied.\",\"fieldErrors\":{}}");
+                        })
                 )
 
                 .authorizeHttpRequests(auth -> auth
@@ -121,6 +131,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/public/**",
+                                "/files/**",
                                 "/error"
                         ).permitAll()
 
@@ -132,8 +143,12 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider())
 
                 .addFilterBefore(
-                        jwtAuthenticationFilter,
+                        apiKeyAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
+                )
+                .addFilterAfter(
+                        jwtAuthenticationFilter,
+                        ApiKeyAuthenticationFilter.class
                 );
 
         return http.build();

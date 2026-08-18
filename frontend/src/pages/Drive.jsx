@@ -26,6 +26,7 @@ import {
   CheckCircle2,
   AlertCircle,
   RotateCcw,
+  SlidersHorizontal,
 } from "lucide-react";
 import Swal from "sweetalert2";
 
@@ -103,6 +104,22 @@ function uid() {
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+function savedConcurrency(key, fallback) {
+  const value = Number.parseInt(localStorage.getItem(key) || "", 10);
+  return Number.isInteger(value) && value >= 1 && value <= 10 ? value : fallback;
+}
+
+function saveBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export default function Drive() {
   const [loading, setLoading] = useState(true);
   const [assetUrl, setAssetUrl] = useState(null);
@@ -120,6 +137,8 @@ export default function Drive() {
   const [view, setView] = useState("grid"); // grid | list
   const [sortBy, setSortBy] = useState("name"); // name | date | size
   const [sortDir, setSortDir] = useState("asc");
+  const [uploadConcurrency, setUploadConcurrency] = useState(() => savedConcurrency("drive.uploadConcurrency", 2));
+  const [downloadConcurrency, setDownloadConcurrency] = useState(() => savedConcurrency("drive.downloadConcurrency", 2));
   const [isDragging, setIsDragging] = useState(false);
 
   // ---- Move / Copy picker ----
@@ -396,7 +415,7 @@ export default function Drive() {
     };
 
     await Promise.all(
-      Array.from({ length: Math.min(2, entries.length) }, () => worker())
+      Array.from({ length: Math.min(uploadConcurrency, entries.length) }, () => worker())
     );
 
     if (uploadedAny && currentFolderUuidRef.current === refreshFolderUuid) {
@@ -535,6 +554,18 @@ export default function Drive() {
       toast.fire({ icon: "success", title: result.isDenied ? "Cover removed" : "Cover updated" });
     } catch (error) {
       Swal.fire({ icon: "error", title: "Couldn't update cover", text: error.response?.data?.message ?? "Please try again." });
+    }
+  };
+
+  const handleFolderStreaming = async () => {
+    if (!selectedFolder) return;
+    try {
+      const updated = await folderApi.setStreaming(selectedFolder.uuid, !selectedFolder.isStreaming);
+      setSelectedFolder(updated);
+      setFolders((items) => items.map((item) => item.uuid === updated.uuid ? updated : item));
+      toast.fire({ icon: "success", title: updated.isStreaming ? "Streaming enabled" : "Streaming disabled" });
+    } catch (error) {
+      Swal.fire({ icon: "error", title: "Couldn't update streaming", text: error.response?.data?.message ?? "Please try again." });
     }
   };
 
@@ -678,16 +709,7 @@ export default function Drive() {
   const handleDownload = async (file) => {
     try {
       const response = await fileApi.downloadFile(file.uuid);
-      const blob = new Blob([response.data]);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-
-      link.href = url;
-      link.download = file.originalName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      saveBlob(new Blob([response.data]), file.originalName);
     } catch {
       Swal.fire({ icon: "error", title: "Download failed" });
     }
@@ -837,18 +859,58 @@ export default function Drive() {
   const downloadSelected = async () => {
     if (!selectedCount) return;
     try {
+      // Folders must remain a server-created ZIP. File-only selections can use
+      // the user's transfer concurrency setting.
+      if (bulkSelection.folderUuids.length === 0) {
+        const selectedFiles = files.filter((file) => bulkSelection.fileUuids.includes(file.uuid));
+        let nextIndex = 0;
+        let failed = 0;
+        const worker = async () => {
+          while (nextIndex < selectedFiles.length) {
+            const file = selectedFiles[nextIndex++];
+            try {
+              const response = await fileApi.downloadFile(file.uuid);
+              saveBlob(new Blob([response.data]), file.originalName);
+            } catch {
+              failed += 1;
+            }
+          }
+        };
+        await Promise.all(Array.from({ length: Math.min(downloadConcurrency, selectedFiles.length) }, () => worker()));
+        if (failed) throw new Error(`${failed} download${failed === 1 ? "" : "s"} failed`);
+        clearSelected();
+        toast.fire({ icon: "success", title: `${selectedFiles.length} files downloaded` });
+        return;
+      }
       const response = await bulkApi.download(bulkSelection);
-      const url = URL.createObjectURL(response.data);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "drive-selection.zip";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      saveBlob(response.data, "drive-selection.zip");
     } catch (error) {
       Swal.fire({ icon: "error", title: "Download failed", text: error.response?.data?.message ?? "Please try again." });
     }
+  };
+
+  const openTransferSettings = async () => {
+    const result = await Swal.fire({
+      title: "Transfer settings",
+      html: `<label class="swal2-input-label" for="upload-concurrency">Simultaneous uploads</label><input id="upload-concurrency" class="swal2-input" type="number" min="1" max="10" value="${uploadConcurrency}"><p class="swal2-validation-message" style="display:block;margin:0 2em 1em;background:transparent;color:#5B5F5C">Use 1 for one-after-another. Higher values transfer in parallel.</p><label class="swal2-input-label" for="download-concurrency">Simultaneous downloads</label><input id="download-concurrency" class="swal2-input" type="number" min="1" max="10" value="${downloadConcurrency}">`,
+      showCancelButton: true,
+      confirmButtonText: "Save settings",
+      preConfirm: () => {
+        const uploads = Number.parseInt(document.getElementById("upload-concurrency").value, 10);
+        const downloads = Number.parseInt(document.getElementById("download-concurrency").value, 10);
+        if (![uploads, downloads].every((value) => Number.isInteger(value) && value >= 1 && value <= 10)) {
+          Swal.showValidationMessage("Choose a number from 1 to 10");
+          return false;
+        }
+        return { uploads, downloads };
+      },
+    });
+    if (!result.isConfirmed) return;
+    setUploadConcurrency(result.value.uploads);
+    setDownloadConcurrency(result.value.downloads);
+    localStorage.setItem("drive.uploadConcurrency", String(result.value.uploads));
+    localStorage.setItem("drive.downloadConcurrency", String(result.value.downloads));
+    toast.fire({ icon: "success", title: "Transfer settings saved" });
   };
 
   // -------------------------------------------------------------------------
@@ -1011,6 +1073,15 @@ export default function Drive() {
               <Folder size={16} className="text-[#C9971C]" />
               <span className="hidden sm:inline">New folder</span>
               <span className="sm:hidden">New</span>
+            </button>
+
+            <button
+              onClick={openTransferSettings}
+              title={`Transfers: ${uploadConcurrency} uploads, ${downloadConcurrency} downloads at once`}
+              className="flex items-center gap-2 whitespace-nowrap rounded-lg border border-[#E4E1DA] bg-white px-3.5 py-2.5 text-sm font-medium text-[#1B1D1B] shadow-sm transition hover:bg-[#F0EEE7] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C52]"
+            >
+              <SlidersHorizontal size={16} />
+              <span className="hidden sm:inline">Transfers</span>
             </button>
 
             {currentFolder && (
@@ -1195,6 +1266,7 @@ export default function Drive() {
                   onMoveFolder={() => openPicker("move", "folder", selectedFolder)}
                   onCopyFolder={() => openPicker("copy", "folder", selectedFolder)}
                   onCover={handleFolderCover}
+                  onStreaming={handleFolderStreaming}
                 />
               ) : (
                 <div className="py-10 text-center sm:py-20">
@@ -1494,7 +1566,7 @@ function FileDetail({
   );
 }
 
-function FolderDetail({ folder, share, onOpen, onCopy, onShare, onRename, onDelete, onMoveFolder, onCopyFolder, onCover }) {
+function FolderDetail({ folder, share, onOpen, onCopy, onShare, onRename, onDelete, onMoveFolder, onCopyFolder, onCover, onStreaming }) {
   return (
     <>
       <div className="mb-5 text-center sm:mb-6">
@@ -1532,6 +1604,7 @@ function FolderDetail({ folder, share, onOpen, onCopy, onShare, onRename, onDele
           <button onClick={onMoveFolder} className="flex items-center justify-center gap-2 rounded-lg border border-[#E4E1DA] bg-white py-2.5 text-sm font-medium text-[#1B1D1B] hover:bg-[#F0EEE7]"><Move size={16} />Move</button>
           <button onClick={onCopyFolder} className="flex items-center justify-center gap-2 rounded-lg border border-[#E4E1DA] bg-white py-2.5 text-sm font-medium text-[#1B1D1B] hover:bg-[#F0EEE7]"><Copy size={16} />Copy</button>
         </div>
+        <button onClick={onStreaming} className={`flex items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium ${folder.isStreaming ? "border-[#1F5C52] bg-[#EEF4F2] text-[#1F5C52]" : "border-[#E4E1DA] bg-white text-[#1B1D1B] hover:bg-[#F0EEE7]"}`}><FileVideo size={16} />{folder.isStreaming ? "Streaming folder" : "Enable streaming"}</button>
         <div className="grid grid-cols-2 gap-2.5">
           <button onClick={onRename} className="flex items-center justify-center gap-2 rounded-lg border border-[#E4E1DA] bg-white py-2.5 text-sm font-medium text-[#1B1D1B] hover:bg-[#F0EEE7]"><Pencil size={16} />Rename</button>
           <button onClick={onCover} className="flex items-center justify-center gap-2 rounded-lg border border-[#E4E1DA] bg-white py-2.5 text-sm font-medium text-[#1B1D1B] hover:bg-[#F0EEE7]"><FileImage size={16} />Cover</button>

@@ -56,6 +56,13 @@ const shareApi = {
     return response.data;
   },
 
+  getPlayback: async (token, fileUuid) => {
+    const response = await axios.get(`/public/folders/${encodeURIComponent(token)}/assets/${fileUuid}/playback`, {
+      skipAuthRedirect: true,
+    });
+    return response.data;
+  },
+
   /**
    * Copy text to clipboard
    */

@@ -16,6 +16,8 @@ public interface DriveFileService {
             String folderUuid
     ) throws IOException;
 
+    UploadFileResponse upload(MultipartFile file, String folderUuid, Boolean isPublic) throws IOException;
+
     FileDownloadResponse download(
             String fileUuid
     ) throws IOException;

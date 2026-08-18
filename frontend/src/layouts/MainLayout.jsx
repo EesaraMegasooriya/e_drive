@@ -1,6 +1,6 @@
 import { Link, Outlet } from "react-router-dom";
 import { LogOut, Settings, ShieldCheck } from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
+import useAuth from "../contexts/useAuth";
 import E_Drive_Logo from "../assets/E_Drive_Logo.webp";
 
 function getInitials(name, email) {

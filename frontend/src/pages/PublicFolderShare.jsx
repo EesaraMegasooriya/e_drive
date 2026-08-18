@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Hls from "hls.js";
 import { useParams } from "react-router-dom";
 import {
   AlertCircle,
@@ -22,7 +23,7 @@ function fileKind(file) {
   const mimeType = file.mimeType?.toLowerCase() || "";
   if (mimeType.startsWith("image/")) return "image";
   if (mimeType === "application/pdf") return "pdf";
-  if (mimeType.startsWith("video/")) return "video";
+  if (mimeType.startsWith("video/") || ["mkv", "m4v", "mov"].includes(file.extension?.toLowerCase())) return "video";
   if (mimeType.startsWith("audio/")) return "audio";
   return "file";
 }
@@ -223,6 +224,39 @@ function PreviewTile({ file }) {
   return <div className="flex h-full flex-col items-center justify-center text-[#5B5F5C]"><FileIcon file={file} size={48} /><span className="mt-3 text-xs font-medium">{file.extension?.toUpperCase() || "FILE"}</span></div>;
 }
 
+function StreamVideo({ file }) {
+  const { token } = useParams();
+  const videoRef = useRef(null);
+  const [playback, setPlayback] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    let hls;
+    shareApi.getPlayback(token, file.uuid).then((data) => {
+      if (cancelled) return;
+      setPlayback(data);
+      const video = videoRef.current;
+      if (!video) return;
+      if (video.canPlayType("application/vnd.apple.mpegurl")) video.src = data.streamUrl;
+      else if (Hls.isSupported()) {
+        hls = new Hls();
+        hls.loadSource(data.streamUrl);
+        hls.attachMedia(video);
+      } else setError("HLS playback is not supported by this browser.");
+    }).catch((requestError) => setError(requestError.response?.data?.message || "The video could not be prepared."));
+    return () => { cancelled = true; hls?.destroy(); };
+  }, [file.uuid, token]);
+
+  if (error) return <div className="flex min-h-64 items-center justify-center text-sm text-[#C4432B]">{error}</div>;
+  return <div className="min-h-64">
+    {!playback && <div className="flex min-h-64 flex-col items-center justify-center"><LoaderCircle className="animate-spin text-[#1F5C52]" /><p className="mt-3 text-sm">Preparing video stream…</p></div>}
+    <video ref={videoRef} controls autoPlay className={`${playback ? "" : "hidden"} mx-auto max-h-[72vh] max-w-full`}>
+      {playback?.subtitles?.map((track, index) => <track key={track.url} kind="subtitles" src={track.url} srcLang={track.language} label={track.label} default={index === 0} />)}
+    </video>
+  </div>;
+}
+
 function PreviewModal({ file, onClose }) {
   const kind = fileKind(file);
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-label={`Preview ${file.name}`} onClick={onClose}>
@@ -231,7 +265,7 @@ function PreviewModal({ file, onClose }) {
       <div className="max-h-[calc(92vh-136px)] overflow-auto bg-[#F7F6F2] p-4">
         {kind === "image" && <img src={file.url} alt={file.name} className="mx-auto max-h-[72vh] max-w-full object-contain" />}
         {kind === "pdf" && <iframe src={file.url} title={file.name} className="h-[72vh] w-full rounded bg-white" />}
-        {kind === "video" && <video src={file.url} controls autoPlay className="mx-auto max-h-[72vh] max-w-full" />}
+        {kind === "video" && (file.playbackUrl ? <StreamVideo file={file} /> : <video src={file.url} controls autoPlay className="mx-auto max-h-[72vh] max-w-full" />)}
         {kind === "audio" && <div className="flex min-h-64 flex-col items-center justify-center"><Music size={58} className="text-[#1F5C52]" /><audio src={file.url} controls className="mt-6 w-full max-w-xl" /></div>}
         {kind === "file" && <div className="flex min-h-64 flex-col items-center justify-center text-center"><FileIcon file={file} size={58} /><p className="mt-4 text-sm text-[#5B5F5C]">A browser preview is not available for this file type.</p></div>}
       </div>

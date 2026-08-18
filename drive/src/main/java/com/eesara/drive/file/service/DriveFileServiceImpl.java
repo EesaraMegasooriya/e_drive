@@ -19,6 +19,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import com.eesara.drive.share.repository.ShareLinkRepository;
+import com.eesara.drive.apikey.ServiceAuthorization;
+import com.eesara.drive.apikey.ApiKeyScope;
+import com.eesara.drive.audit.ServiceAudit;
+import org.springframework.beans.factory.annotation.Value;
+import com.eesara.drive.common.ApiException;
 
 import java.io.IOException;
 import java.util.List;
@@ -33,11 +38,23 @@ public class DriveFileServiceImpl implements DriveFileService {
     private final StorageService storageService;
     private final ShareLinkRepository shareLinkRepository;
     private final UserRepository userRepository;
+    private final ServiceAuthorization authorization;
+    private final ServiceImageValidator imageValidator;
+    private final ServiceAudit audit;
+    @Value("${public.base-url:${app.base-url:http://localhost:8080}}") private String publicBaseUrl;
 
     @Override
     public UploadFileResponse upload(
             MultipartFile file,
             String folderUuid) throws IOException {
+        return upload(file, folderUuid, false);
+    }
+
+    @Override
+    public UploadFileResponse upload(MultipartFile file, String folderUuid, Boolean isPublic) throws IOException {
+
+        folderUuid = authorization.uploadFolder(folderUuid);
+        if (authorization.isApiKey()) imageValidator.validate(file);
 
         User owner = currentUserService.getCurrentUser();
         // Multipart implementations backed by a temporary path may move that
@@ -97,16 +114,27 @@ public class DriveFileServiceImpl implements DriveFileService {
                 .fileSize(uploadedFileSize)
                 .storagePath(storagePath)
                 .checksum(checksum)
+                .isPublic(Boolean.TRUE.equals(isPublic))
                 .build();
 
         driveFileRepository.save(driveFile);
         owner.setUsedStorage(owner.getUsedStorage() + uploadedFileSize);
         userRepository.save(owner);
 
+        if (authorization.isApiKey()) audit.record("UPLOAD_COMPLETED", driveFile.getUuid(), "SUCCESS",
+                folder == null ? null : folder.getUuid());
+
         return UploadFileResponse.builder()
                 .uuid(driveFile.getUuid())
                 .originalName(driveFile.getOriginalName())
+                .name(driveFile.getStoredName())
+                .mimeType(driveFile.getMimeType())
+                .size(driveFile.getFileSize())
                 .fileSize(driveFile.getFileSize())
+                .url(Boolean.TRUE.equals(driveFile.getIsPublic()) ? publicUrl(driveFile) : null)
+                .isPublic(Boolean.TRUE.equals(driveFile.getIsPublic()))
+                .folderUuid(folder == null ? null : folder.getUuid())
+                .createdAt(driveFile.getCreatedAt())
                 .message("File uploaded successfully")
                 .build();
     }
@@ -117,10 +145,12 @@ public class DriveFileServiceImpl implements DriveFileService {
         User owner = currentUserService.getCurrentUser();
 
         DriveFile driveFile = driveFileRepository.findByUuid(fileUuid)
-                .orElseThrow(() -> new RuntimeException("File not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found"));
+
+        authorization.file(driveFile, ApiKeyScope.FILES_READ.value());
 
         if (!driveFile.getOwner().getId().equals(owner.getId())) {
-            throw new RuntimeException("Access denied");
+            throw new ApiException(HttpStatus.FORBIDDEN,"ACCESS_DENIED","Access denied.");
         }
 
         Resource resource = storageService.loadAsResource(
@@ -139,6 +169,9 @@ public class DriveFileServiceImpl implements DriveFileService {
 
         User owner = currentUserService.getCurrentUser();
 
+        authorization.scope(ApiKeyScope.FILES_READ.value());
+        if ((folderUuid == null || folderUuid.isBlank()) && authorization.restrictedFolderUuid() != null)
+            folderUuid = authorization.restrictedFolderUuid();
         List<DriveFile> files;
 
         if (folderUuid == null || folderUuid.isBlank()) {
@@ -149,6 +182,8 @@ public class DriveFileServiceImpl implements DriveFileService {
 
             Folder folder = folderRepository.findByUuidAndOwner(folderUuid, owner)
                     .orElseThrow(() -> new RuntimeException("Folder not found"));
+
+            authorization.folder(folder, ApiKeyScope.FILES_READ.value());
 
             files = driveFileRepository.findByFolderAndOwner(
                     folder,
@@ -165,10 +200,13 @@ public class DriveFileServiceImpl implements DriveFileService {
     public FileResponse setPublic(String fileUuid, boolean isPublic) {
         User owner = currentUserService.getCurrentUser();
         DriveFile file = driveFileRepository.findByUuid(fileUuid)
-                .orElseThrow(() -> new RuntimeException("File not found"));
-        if (!file.getOwner().getId().equals(owner.getId())) throw new RuntimeException("Access denied");
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found"));
+        authorization.file(file, ApiKeyScope.FILES_UPDATE.value());
+        if (!file.getOwner().getId().equals(owner.getId())) throw new ApiException(HttpStatus.FORBIDDEN,"ACCESS_DENIED","Access denied.");
         file.setIsPublic(isPublic);
-        return toFileResponse(driveFileRepository.save(file));
+        FileResponse response=toFileResponse(driveFileRepository.save(file));
+        if(authorization.isApiKey())audit.record("VISIBILITY_CHANGED",fileUuid,"SUCCESS",String.valueOf(isPublic));
+        return response;
     }
 
     @Override
@@ -181,8 +219,10 @@ public class DriveFileServiceImpl implements DriveFileService {
         DriveFile driveFile = driveFileRepository.findByUuid(fileUuid)
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
+        authorization.file(driveFile, ApiKeyScope.FILES_UPDATE.value());
+
         if (!driveFile.getOwner().getId().equals(owner.getId())) {
-            throw new RuntimeException("Access denied");
+            throw new ApiException(HttpStatus.FORBIDDEN,"ACCESS_DENIED","Access denied.");
         }
 
         String newName = request.getName().trim();
@@ -217,11 +257,13 @@ public void deleteFile(String fileUuid) throws IOException {
 
     User owner = currentUserService.getCurrentUser();
 
-    DriveFile driveFile = driveFileRepository.findByUuid(fileUuid)
-            .orElseThrow(() -> new RuntimeException("File not found"));
+    authorization.scope(ApiKeyScope.FILES_DELETE.value());
+    DriveFile driveFile = driveFileRepository.findByUuid(fileUuid).orElse(null);
+    if (driveFile == null) { if (authorization.isApiKey()) return; throw new ResponseStatusException(HttpStatus.NOT_FOUND,"File not found"); }
+    authorization.file(driveFile, ApiKeyScope.FILES_DELETE.value());
 
     if (!driveFile.getOwner().getId().equals(owner.getId())) {
-        throw new RuntimeException("Access denied");
+        throw new ApiException(HttpStatus.FORBIDDEN,"ACCESS_DENIED","Access denied.");
     }
 
     // Delete all share links first
@@ -234,6 +276,7 @@ public void deleteFile(String fileUuid) throws IOException {
     driveFileRepository.delete(driveFile);
     owner.setUsedStorage(Math.max(0L, owner.getUsedStorage() - driveFile.getFileSize()));
     userRepository.save(owner);
+    if(authorization.isApiKey())audit.record("FILE_DELETED",fileUuid,"SUCCESS",null);
 }
 
     @Override
@@ -246,8 +289,10 @@ public void deleteFile(String fileUuid) throws IOException {
         DriveFile driveFile = driveFileRepository.findByUuid(fileUuid)
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
+        authorization.file(driveFile, ApiKeyScope.FILES_UPDATE.value());
+
         if (!driveFile.getOwner().getId().equals(owner.getId())) {
-            throw new RuntimeException("Access denied");
+            throw new ApiException(HttpStatus.FORBIDDEN,"ACCESS_DENIED","Access denied.");
         }
 
         Folder folder = null;
@@ -257,7 +302,10 @@ public void deleteFile(String fileUuid) throws IOException {
             folder = folderRepository.findByUuidAndOwner(folderUuid, owner)
                     .orElseThrow(() ->
                             new RuntimeException("Folder not found"));
+            authorization.folder(folder, ApiKeyScope.FILES_UPDATE.value());
         }
+        if (folder == null && authorization.restrictedFolderUuid() != null)
+            authorization.folder(null, ApiKeyScope.FILES_UPDATE.value());
 
         String currentFolderUuid = driveFile.getFolder() == null
                 ? null : driveFile.getFolder().getUuid();
@@ -287,11 +335,13 @@ public void deleteFile(String fileUuid) throws IOException {
         DriveFile source = driveFileRepository.findByUuid(fileUuid)
                 .filter(file -> file.getOwner().getId().equals(owner.getId()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found"));
+        authorization.file(source, ApiKeyScope.FILES_UPDATE.value());
 
         Folder destination = null;
         if (folderUuid != null && !folderUuid.isBlank()) {
             destination = folderRepository.findByUuidAndOwner(folderUuid, owner)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Folder not found"));
+            authorization.folder(destination, ApiKeyScope.FILES_UPDATE.value());
         }
         if (driveFileRepository.existsByFolderAndOriginalNameAndOwner(
                 destination, source.getOriginalName(), owner)) {
@@ -342,6 +392,11 @@ public void deleteFile(String fileUuid) throws IOException {
                                 : folder.getUuid())
                 .createdAt(driveFile.getCreatedAt())
                 .isPublic(Boolean.TRUE.equals(driveFile.getIsPublic()))
+                .url(Boolean.TRUE.equals(driveFile.getIsPublic()) ? publicUrl(driveFile) : null)
                 .build();
+    }
+
+    private String publicUrl(DriveFile file) {
+        return publicBaseUrl.replaceAll("/$", "") + "/files/" + file.getUuid() + "/" + file.getStoredName();
     }
 }

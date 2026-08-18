@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { KeyRound, Save, UserRound } from "lucide-react";
 import Swal from "sweetalert2";
 import authApi from "../api/authApi";
-import { useAuth } from "../contexts/AuthContext";
+import useAuth from "../contexts/useAuth";
 
 export default function Profile() {
   const { user, updateUser } = useAuth();
@@ -10,7 +10,7 @@ export default function Profile() {
   const [password, setPassword] = useState({ currentPassword: "", newPassword: "", confirm: "" });
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { authApi.getProfile().then((profile) => { setName(profile.name); updateUser(profile); }).catch(() => {}); }, []);
+  useEffect(() => { authApi.getProfile().then((profile) => { setName(profile.name); updateUser(profile); }).catch(() => {}); }, [updateUser]);
 
   const saveProfile = async (event) => {
     event.preventDefault();

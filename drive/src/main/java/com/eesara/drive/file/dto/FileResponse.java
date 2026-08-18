@@ -27,4 +27,6 @@ public class FileResponse {
 
     private Boolean isPublic;
 
+    private String url;
+
 }

@@ -1,23 +1,15 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import authApi from "../api/authApi";
 import { getTokenExpiry } from "../api/axios";
-
-const AuthContext = createContext();
+import AuthContext from "./auth-context";
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(() => authApi.isAuthenticated() ? authApi.getUser() : null);
+  const loading = false;
 
-  useEffect(() => {
-    const savedUser = authApi.getUser();
-
-    if (savedUser && authApi.isAuthenticated()) {
-      setUser(savedUser);
-    } else if (savedUser) {
-      authApi.logout();
-    }
-
-    setLoading(false);
+  const logout = useCallback(() => {
+    authApi.logout();
+    setUser(null);
   }, []);
 
   useEffect(() => {
@@ -25,7 +17,7 @@ export function AuthProvider({ children }) {
 
     const expiresAt = getTokenExpiry();
     if (!expiresAt) {
-      logout();
+      authApi.logout();
       window.location.replace("/login");
       return undefined;
     }
@@ -36,7 +28,7 @@ export function AuthProvider({ children }) {
     }, Math.max(0, expiresAt - Date.now()));
 
     return () => window.clearTimeout(timeout);
-  }, [user]);
+  }, [user, logout]);
 
   const login = async (credentials) => {
     const response = await authApi.login(credentials);
@@ -48,15 +40,10 @@ export function AuthProvider({ children }) {
     return response;
   };
 
-  const logout = () => {
-    authApi.logout();
-    setUser(null);
-  };
-
-  const updateUser = (updatedUser) => {
+  const updateUser = useCallback((updatedUser) => {
     localStorage.setItem("user", JSON.stringify(updatedUser));
     setUser(updatedUser);
-  };
+  }, []);
 
   return (
     <AuthContext.Provider
@@ -72,8 +59,4 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  return useContext(AuthContext);
 }

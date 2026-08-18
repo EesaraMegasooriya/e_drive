@@ -36,6 +36,10 @@ services:
 
       APP_BASE_URL: https://drive.eesara.com
       APP_FRONTEND_URL: https://drive.eesara.com
+      PUBLIC_BASE_URL: https://drive.eesara.com
+      SERVICE_API_KEYS_ENABLED: "true"
+      SERVICE_API_KEY_PREFIX: edrive_
+      WISHES_MAX_IMAGE_SIZE_MB: "10"
 
       STORAGE_LOCATION: /app/uploads
 

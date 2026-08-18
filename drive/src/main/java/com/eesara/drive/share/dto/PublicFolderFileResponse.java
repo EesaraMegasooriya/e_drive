@@ -14,4 +14,5 @@ public class PublicFolderFileResponse {
     private Long size;
     private String path;
     private String url;
+    private String playbackUrl;
 }

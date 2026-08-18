@@ -46,6 +46,8 @@ const folderApi = {
 
   setVisibility: async (uuid, isPublic) => (await axios.put(`/folders/${uuid}/visibility`, null, { params: { isPublic } })).data,
 
+  setStreaming: async (uuid, enabled) => (await axios.put(`/folders/${uuid}/streaming`, null, { params: { enabled } })).data,
+
   updateCover: async (uuid, data) => (await axios.put(`/folders/${uuid}/cover`, data)).data,
 };
 

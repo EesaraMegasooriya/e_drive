@@ -32,6 +32,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
 
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         // Some reverse proxies/security layers drop Authorization on large or
         // PUT requests. Resumable uploads send the same Bearer token through a
         // narrowly scoped fallback header as well.

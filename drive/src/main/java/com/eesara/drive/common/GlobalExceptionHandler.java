@@ -58,6 +58,6 @@ public class GlobalExceptionHandler {
     private ResponseEntity<ApiErrorResponse> response(
             HttpStatus status, String code, String message, Map<String, String> fields) {
         return ResponseEntity.status(status).body(new ApiErrorResponse(
-                Instant.now(), status.value(), code, message, fields));
+                false, Instant.now(), status.value(), code, message, fields));
     }
 }

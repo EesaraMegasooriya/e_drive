@@ -59,6 +59,10 @@ public class Folder {
     @Column(name = "is_public", nullable = false)
     private Boolean isPublic = false;
 
+    @Builder.Default
+    @Column(name = "is_streaming", nullable = false)
+    private Boolean isStreaming = false;
+
     @Column(updatable = false)
     private LocalDateTime createdAt;
 

@@ -2,6 +2,8 @@ package com.eesara.drive.folder.service;
 
 import com.eesara.drive.file.repository.DriveFileRepository;
 import com.eesara.drive.file.service.DriveFileService;
+import com.eesara.drive.apikey.ServiceAuthorization;
+import com.eesara.drive.apikey.ApiKeyScope;
 import com.eesara.drive.folder.dto.CreateFolderRequest;
 import com.eesara.drive.folder.dto.FolderResponse;
 import com.eesara.drive.folder.dto.RenameFolderRequest;
@@ -32,6 +34,7 @@ public class FolderServiceImpl implements FolderService {
     private final StorageService storageService;
     private final UserRepository userRepository;
     private final DriveFileService driveFileService;
+    private final ServiceAuthorization authorization;
 
     @Override
     public FolderResponse createFolder(CreateFolderRequest request) {
@@ -81,6 +84,10 @@ public class FolderServiceImpl implements FolderService {
 
         User owner = currentUserService.getCurrentUser();
 
+        authorization.scope(ApiKeyScope.FOLDERS_READ.value());
+        if ((parentUuid == null || parentUuid.isBlank()) && authorization.restrictedFolderUuid() != null)
+            parentUuid = authorization.restrictedFolderUuid();
+
         List<Folder> folders;
 
         if (parentUuid == null || parentUuid.isBlank()) {
@@ -97,6 +104,8 @@ public class FolderServiceImpl implements FolderService {
                     owner
             ).orElseThrow(() ->
                     new RuntimeException("Folder not found"));
+
+            authorization.folder(parent, ApiKeyScope.FOLDERS_READ.value());
 
             folders = folderRepository.findByParentAndOwner(
                     parent,
@@ -170,6 +179,8 @@ public FolderResponse getFolder(String folderUuid) {
     ).orElseThrow(() ->
             new RuntimeException("Folder not found"));
 
+    authorization.folder(folder, ApiKeyScope.FOLDERS_READ.value());
+
     return toResponse(folder);
 }
     @Override
@@ -178,6 +189,15 @@ public FolderResponse getFolder(String folderUuid) {
         Folder folder = folderRepository.findByUuidAndOwner(folderUuid, owner)
                 .orElseThrow(() -> new RuntimeException("Folder not found"));
         folder.setIsPublic(isPublic);
+        return toResponse(folderRepository.save(folder));
+    }
+
+    @Override
+    public FolderResponse setStreaming(String folderUuid, boolean isStreaming) {
+        User owner = currentUserService.getCurrentUser();
+        Folder folder = folderRepository.findByUuidAndOwner(folderUuid, owner)
+                .orElseThrow(() -> new RuntimeException("Folder not found"));
+        folder.setIsStreaming(isStreaming);
         return toResponse(folderRepository.save(folder));
     }
 
@@ -251,6 +271,7 @@ public FolderResponse getFolder(String folderUuid) {
                 .coverImageUrl(source.getCoverImageUrl())
                 .coverIcon(source.getCoverIcon())
                 .isPublic(false)
+                .isStreaming(source.getIsStreaming())
                 .build());
 
         for (var file : driveFileRepository.findByFolder(source)) {
@@ -353,6 +374,7 @@ private FolderResponse toResponse(Folder folder) {
             .createdAt(folder.getCreatedAt())
             .updatedAt(folder.getUpdatedAt())
             .isPublic(Boolean.TRUE.equals(folder.getIsPublic()))
+            .isStreaming(Boolean.TRUE.equals(folder.getIsStreaming()))
             .build();
 }
 

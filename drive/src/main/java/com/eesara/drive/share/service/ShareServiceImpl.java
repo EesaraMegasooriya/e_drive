@@ -245,7 +245,8 @@ public class ShareServiceImpl implements ShareService {
         }
 
         List<PublicFolderFileResponse> files = new ArrayList<>();
-        collectPublicFolderFiles(share.getFolder(), "", token, files);
+        collectPublicFolderFiles(share.getFolder(), "", token, files,
+                Boolean.TRUE.equals(share.getFolder().getIsStreaming()));
         files.sort(java.util.Comparator.comparing(PublicFolderFileResponse::getPath,
                 String.CASE_INSENSITIVE_ORDER));
         return files;
@@ -354,7 +355,8 @@ public class ShareServiceImpl implements ShareService {
             Folder folder,
             String parentPath,
             String token,
-            List<PublicFolderFileResponse> files
+            List<PublicFolderFileResponse> files,
+            boolean streaming
     ) {
         String folderPath = parentPath.isBlank()
                 ? folder.getName()
@@ -370,11 +372,15 @@ public class ShareServiceImpl implements ShareService {
                         .size(file.getFileSize())
                         .path(folderPath + "/" + file.getOriginalName())
                         .url(folderAssetUrl(token, file))
+                        .playbackUrl(streaming && (file.getMimeType().startsWith("video/")
+                                || "mkv".equalsIgnoreCase(file.getExtension()))
+                                ? folderContentsUrl(token) + "/assets/" + file.getUuid() + "/playback"
+                                : null)
                         .build()));
 
         folder.getChildren().stream()
                 .filter(child -> !Boolean.TRUE.equals(child.getIsDeleted()))
-                .forEach(child -> collectPublicFolderFiles(child, folderPath, token, files));
+                .forEach(child -> collectPublicFolderFiles(child, folderPath, token, files, streaming));
     }
 
     private void collectFolderAssetUrls(

@@ -28,7 +28,8 @@ public class FileController {
     @PostMapping("/upload")
     public ResponseEntity<UploadFileResponse> upload(
             @RequestParam("file") MultipartFile file,
-            @RequestParam(required = false) String folderUuid
+            @RequestParam(required = false) String folderUuid,
+            @RequestParam(required = false, defaultValue = "false") Boolean isPublic
     ) throws IOException {
 
         System.out.println("========== FILE UPLOAD ==========");
@@ -36,7 +37,7 @@ public class FileController {
         System.out.println("File = " + file.getOriginalFilename());
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(driveFileService.upload(file, folderUuid));
+                .body(driveFileService.upload(file, folderUuid, isPublic));
     }
 
     @GetMapping("/download/{uuid}")
