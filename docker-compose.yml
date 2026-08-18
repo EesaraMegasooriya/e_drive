@@ -7,9 +7,9 @@ services:
 
     environment:
       MYSQL_DATABASE: drive
-      MYSQL_USER: drive
-      MYSQL_PASSWORD: CHANGE_THIS_PASSWORD
-      MYSQL_ROOT_PASSWORD: CHANGE_THIS_ROOT_PASSWORD
+      MYSQL_USER: eesara
+      MYSQL_PASSWORD: eesara123
+      MYSQL_ROOT_PASSWORD: eesara123
 
     volumes:
       - mysql_data:/var/lib/mysql
@@ -31,8 +31,8 @@ services:
     environment:
       DB_HOST: mysql
       DB_DATABASE: drive
-      DB_USER: drive
-      DB_PASSWORD: CHANGE_THIS_PASSWORD
+      DB_USER: eesara
+      DB_PASSWORD: eesara123
 
       APP_BASE_URL: https://drive.eesara.com
       APP_FRONTEND_URL: https://drive.eesara.com
