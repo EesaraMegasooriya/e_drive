@@ -27,6 +27,22 @@ class GalleryThumbnailTests {
         }
     }
 
+    @Test void browserVideoUsesSeparateMp4Cache() throws Exception {
+        Path converter = root.resolve("converter");
+        Files.writeString(converter, "#!/bin/sh\nfor arg do output=\"$arg\"; done\nprintf preview > \"$output\"\n");
+        assertThat(converter.toFile().setExecutable(true)).isTrue();
+        Path original = Files.writeString(root.resolve("clip.MOV"), "original");
+        var service = new GalleryThumbnailService(root.resolve("cache").toString(), converter.toString());
+        Path thumbnail = service.thumbnail(original);
+        Path playback = service.browserMedia(original);
+        assertThat(thumbnail.toString()).endsWith(".jpg");
+        assertThat(playback.toString()).endsWith(".mp4");
+        assertThat(playback).isNotEqualTo(thumbnail);
+        Files.delete(converter);
+        assertThat(service.browserMedia(original)).isEqualTo(playback);
+        assertThat(Files.readString(original)).isEqualTo("original");
+    }
+
     @Test void reportsMissingConverterWithoutWritingToMediaFolder() throws Exception {
         Path original = Files.writeString(root.resolve("video.mp4"), "video");
         var service = new GalleryThumbnailService(root.resolve("cache").toString(), root.resolve("missing").toString());

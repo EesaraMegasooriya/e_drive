@@ -55,7 +55,10 @@ not transcode media. Thumbnails and React gallery UI are the next milestone.
 The public homepage now shows album cards. `/gallery/{galleryId}` displays a
 responsive media grid with pages of 60 items and a modal photo/video viewer.
 The viewer supports previous/next, arrow keys, Escape, and opening originals.
-The existing Drive interface remains at `/drive`.
+The frontend has no login or account screens. Legacy URLs such as `/drive`
+and `/login` redirect to the public gallery homepage. The global auth provider
+is removed, so old session expiry cannot redirect gallery visitors. Existing
+backend administration and write APIs retain their authentication requirements.
 
 `GET /api/public/galleries/{galleryId}/media/{mediaId}/thumbnail` generates a
 640px JPEG preview using FFmpeg (already installed in the Docker image).
@@ -63,6 +66,16 @@ Previews are cached under `${STORAGE_LOCATION}/.gallery-thumbnails`, separate
 from the read-only gallery disk. Set `GALLERY_THUMBNAIL_CACHE` to override it.
 Source path, size, and modification time determine cache identity. Old cache
 versions are not automatically removed yet. Two conversions may run at once;
-each is limited to 30 seconds. Failed previews show a placeholder in the UI.
+image conversion is limited to 60 seconds per stage and video conversion to 10 minutes. Failed previews show a placeholder in the UI.
 Local development requires FFmpeg on PATH or `GALLERY_FFMPEG` configured.
-Video previews use the first frame; playback still depends on browser codecs.
+Video thumbnails use the first frame.
+
+HEIC/HEIF photos use `heif-convert` (Docker package `libheif-examples`) before
+FFmpeg generates JPEG thumbnails and a 2560px viewer image. MOV files use a
+cached H.264/AAC MP4 for browser playback. Other videos attempt original playback
+and fall back to conversion if the browser rejects them. The `/browser` media
+endpoint serves these converted files with range support. Originals remain
+available through `/content`. Conversion is on demand; the first request waits
+for it to finish. Failed or busy conversions can be retried in the viewer.
+Actual camera-file decoding must be verified on the deployed container;
+HDR tone mapping and every HEIF variant are not guaranteed.

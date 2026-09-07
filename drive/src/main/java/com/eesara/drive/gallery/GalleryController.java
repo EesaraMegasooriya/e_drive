@@ -36,6 +36,19 @@ public class GalleryController {
                 .body(new FileSystemResource(file));
     }
 
+    @GetMapping("/{galleryId}/media/{mediaId}/browser")
+    public ResponseEntity<Resource> browser(@PathVariable String galleryId, @PathVariable String mediaId) throws IOException {
+        var source = galleries.content(galleryId, mediaId);
+        String mime = galleries.mime(source);
+        boolean heif = mime.equals("image/heic") || mime.equals("image/heif");
+        if (!heif && !mime.startsWith("video/")) return content(galleryId, mediaId);
+        var file = thumbnails.browserMedia(source);
+        return ResponseEntity.ok().contentType(heif ? MediaType.IMAGE_JPEG : MediaType.parseMediaType("video/mp4"))
+                .contentLength(Files.size(file)).lastModified(Files.getLastModifiedTime(file).toMillis())
+                .cacheControl(CacheControl.noCache()).header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                .header("X-Content-Type-Options", "nosniff").body(new FileSystemResource(file));
+    }
+
     // Spring MVC handles Range requests for this filesystem resource (206/416).
     @GetMapping("/{galleryId}/media/{mediaId}/content")
     public ResponseEntity<Resource> content(@PathVariable String galleryId, @PathVariable String mediaId) throws IOException {
