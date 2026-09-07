@@ -2,19 +2,37 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowUpRight, ChevronLeft, ChevronRight, Images, Play, X } from "lucide-react";
 import "./Gallery.css";
+import GallerySlideshow from "./GallerySlideshow";
+import { previewUrl, originalUrl } from "./galleryMedia";
 
 async function request(path, signal) {
   const response = await fetch(`/api/public/galleries${path}`, { signal });
   if (!response.ok) throw new Error(response.status === 503 ? "The gallery drive is currently unavailable. Please try again later." : "We couldn’t load this gallery. Please try again.");
   return response.json();
 }
-const browserMedia = (item) => /\.(heic|heif|mov)$/i.test(item.name)
-  ? item.contentUrl.replace(/\/content$/, "/browser") : item.contentUrl;
-const preview = (item) => item.contentUrl.replace(/\/content$/, "/thumbnail");
 
-function Thumbnail({ item }) {
+function Thumbnail({ item, onDimensions }) {
   const [failed, setFailed] = useState(false);
-  return item && !failed ? <img src={preview(item)} alt="" loading="lazy" onError={() => setFailed(true)} /> : <span className="eg-placeholder"><Images size={34} /><span>{item ? "Preview unavailable" : "No photos yet"}</span></span>;
+  const [useOriginal, setUseOriginal] = useState(false);
+  return item && !failed ? <img src={useOriginal ? originalUrl(item) : previewUrl(item)} alt="" loading="lazy" decoding="async" onLoad={event => onDimensions?.(event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)} onError={() => { if (!useOriginal && item.type === "image") setUseOriginal(true); else setFailed(true); }} /> : <span className="eg-placeholder"><Images size={34} /><span>{item?.type === "video" ? "Video" : item ? "Preview unavailable" : "No photos yet"}</span></span>;
+}
+
+function BentoTile({ item, onOpen }) {
+  const [dimensions, setDimensions] = useState(null);
+  const ratio = dimensions ? dimensions.width / dimensions.height : 1;
+  const shape = ratio >= 2.2 ? "panorama" : ratio >= 1.2 ? "wide" : ratio <= 0.8 ? "tall" : "square";
+  return <button
+    className={`eg-media eg-media--${shape}`}
+    aria-label={`Open ${item.name}`}
+    title={dimensions ? `${item.name} · ${dimensions.width} × ${dimensions.height}` : item.name}
+    onClick={onOpen}
+  >
+    <Thumbnail item={item} onDimensions={(width, height) => {
+      if (width > 0 && height > 0) setDimensions({ width, height });
+    }} />
+    {item.type === "video" && <span className="eg-play"><Play size={18} fill="currentColor" /></span>}
+    <span className="eg-media-name">{item.name}</span>
+  </button>;
 }
 
 function AlbumCard({ album, index }) {
@@ -22,9 +40,12 @@ function AlbumCard({ album, index }) {
   const [count, setCount] = useState(null);
   useEffect(() => {
     const controller = new AbortController();
-    request(`/${album.id}/media?limit=1`, controller.signal).then(page => { setCover(page.items[0]); setCount(page.total); }).catch(() => {});
+    Promise.all([
+      request(`/${album.id}/media?limit=1`, controller.signal),
+      album.coverId ? request(`/${album.id}/cover`, controller.signal).catch(() => null) : Promise.resolve(null),
+    ]).then(([page, chosenCover]) => { setCover(chosenCover || page.items[0]); setCount(page.total); }).catch(() => {});
     return () => controller.abort();
-  }, [album.id]);
+  }, [album.id, album.coverId]);
   return <Link className="eg-album" to={`/gallery/${album.id}`} state={{ name: album.name }}>
     <div className="eg-cover"><Thumbnail item={cover} /><span className="eg-album-number">{String(index + 1).padStart(2, "0")}</span></div>
     <div className="eg-album-caption"><div><h2>{album.name}</h2><p>{count === null ? "Explore gallery" : `${count} memories`}</p></div><ArrowUpRight size={22} /></div>
@@ -35,8 +56,7 @@ function Viewer({ items, selected, onSelect, onClose }) {
   const dialog = useRef(null);
   const item = items[selected];
   const [readyId, setReadyId] = useState(null);
-  const [fallbackId, setFallbackId] = useState(null);
-  const mediaUrl = fallbackId === item.id ? item.contentUrl.replace(/\/content$/, "/browser") : browserMedia(item);
+  const mediaUrl = item.type === "image" ? previewUrl(item, 1920) : originalUrl(item);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     const previous = document.activeElement;
@@ -53,13 +73,10 @@ function Viewer({ items, selected, onSelect, onClose }) {
   }}>
     <div className="eg-viewer-top"><span>{item.name}</span><button autoFocus onClick={onClose} aria-label="Close viewer"><X /></button></div>
     <div className="eg-viewer-media">
-      {!failed && readyId !== item.id && <p className="eg-preparing" role="status">Preparing your {item.type === "video" ? "video" : "photo"}…</p>}
-      {failed ? <p>We couldn’t prepare this media. <button onClick={() => { setFailed(false); setFallbackId(null); setReadyId(null); }}>Try again</button> <a href={item.contentUrl} target="_blank" rel="noreferrer">Open original</a></p> : item.type === "video" ? <video key={mediaUrl} src={mediaUrl} controls playsInline autoPlay onLoadedData={() => setReadyId(item.id)} onError={() => {
-        if (mediaUrl === item.contentUrl) setFallbackId(item.id);
-        else setFailed(true);
-      }} /> : <img key={mediaUrl} src={mediaUrl} alt={item.name} onLoad={() => setReadyId(item.id)} onError={() => setFailed(true)} />}
+      {!failed && readyId !== item.id && <p className="eg-preparing" role="status">Loading your {item.type === "video" ? "video" : "photo"}…</p>}
+      {failed ? <p>Your browser couldn’t display this file. <button onClick={() => { setFailed(false); setReadyId(null); }}>Try again</button> <a href={originalUrl(item)} target="_blank" rel="noreferrer">Open original</a></p> : item.type === "video" ? <video key={mediaUrl} src={mediaUrl} controls playsInline autoPlay onLoadedData={() => setReadyId(item.id)} onError={() => setFailed(true)} /> : <img key={mediaUrl} src={mediaUrl} alt={item.name} onLoad={() => setReadyId(item.id)} onError={() => setFailed(true)} />}
     </div>
-    <div className="eg-viewer-bottom"><button disabled={selected === 0} onClick={() => navigate(selected - 1)} aria-label="Previous media"><ChevronLeft /></button><span>{selected + 1} / {items.length}</span><a href={item.contentUrl} target="_blank" rel="noreferrer">Open original ↗</a><button disabled={selected === items.length - 1} onClick={() => navigate(selected + 1)} aria-label="Next media"><ChevronRight /></button></div>
+    <div className="eg-viewer-bottom"><button disabled={selected === 0} onClick={() => navigate(selected - 1)} aria-label="Previous media"><ChevronLeft /></button><span>{selected + 1} / {items.length}</span><a href={originalUrl(item)} target="_blank" rel="noreferrer">Open original ↗</a><button disabled={selected === items.length - 1} onClick={() => navigate(selected + 1)} aria-label="Next media"><ChevronRight /></button></div>
   </dialog>;
 }
 
@@ -77,6 +94,7 @@ function GalleryPage({ galleryId }) {
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const [selected, setSelected] = useState(null);
+  const [slideshow, setSlideshow] = useState(false);
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
@@ -101,11 +119,13 @@ function GalleryPage({ galleryId }) {
     <main className="eg-main">
       {galleryId && <Link className="eg-back" to="/"><ArrowLeft size={16} /> All galleries</Link>}
       <section className="eg-intro"><p className="eg-eyebrow">{galleryId ? "THE COLLECTION" : "PLACES. PEOPLE. MOMENTS."}</p><h1>{galleryId ? name : <>Good times.<br /><em>Kept here.</em></>}</h1><p className="eg-description">{galleryId ? `${total} photos & videos to look back on.` : "The trips, the milestones, and everything in between."}</p></section>
+      {galleryId && !loading && items.length > 0 && <div className="eg-gallery-toolbar"><span>Explore the collection</span><button className="eg-slideshow-start" onClick={() => setSlideshow(true)}><Play size={17} /> Slideshow</button></div>}
       {error && <div className="eg-message" role="alert"><p>{error}</p><button onClick={() => { setLoading(true); setAttempt(a => a + 1); }}>Try again</button></div>}
       {loading ? <div className="eg-message" role="status">Gathering your memories…</div> : <>
-        {!galleryId ? <><div className="eg-section-label"><h2>Your galleries</h2><span>{albums.length} collections</span></div><div className="eg-albums">{albums.map((album, index) => <AlbumCard key={album.id} album={album} index={index} />)}</div>{!albums.length && !error && <p className="eg-message">Your first collection will appear here soon.</p>}</> : <><div className="eg-media-grid">{items.map((item, index) => <button className="eg-media" key={item.id} aria-label={`Open ${item.name}`} onClick={() => setSelected(index)}><Thumbnail item={item} />{item.type === "video" && <span className="eg-play"><Play size={18} fill="currentColor" /></span>}<span className="eg-media-name">{item.name}</span></button>)}</div>{!items.length && !error && <p className="eg-message">No photos or videos in this collection yet.</p>}{items.length < total && <button className="eg-load" disabled={moreLoading} onClick={loadMore}>{moreLoading ? "Loading…" : "Load more memories"}</button>}</>}
+        {!galleryId ? <><div className="eg-section-label"><h2>Your galleries</h2><span>{albums.length} collections</span></div><div className="eg-albums">{albums.map((album, index) => <AlbumCard key={album.id} album={album} index={index} />)}</div>{!albums.length && !error && <p className="eg-message">Your first collection will appear here soon.</p>}</> : <><div className="eg-media-grid">{items.map((item, index) => <BentoTile key={`${item.id}:${item.modifiedAt}`} item={item} onOpen={() => setSelected(index)} />)}</div>{!items.length && !error && <p className="eg-message">No photos or videos in this collection yet.</p>}{items.length < total && <button className="eg-load" disabled={moreLoading} onClick={loadMore}>{moreLoading ? "Loading…" : "Load more memories"}</button>}</>}
       </>}
     </main><footer className="eg-footer"><span>E Gallery</span><span>Made for remembering.</span></footer>
+    {slideshow && <GallerySlideshow galleryId={galleryId} onClose={() => setSlideshow(false)} />}
     {selected !== null && <Viewer items={items} selected={selected} onSelect={setSelected} onClose={() => setSelected(null)} />}
   </div>;
 }

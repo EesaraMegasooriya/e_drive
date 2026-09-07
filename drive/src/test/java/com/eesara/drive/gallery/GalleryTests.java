@@ -27,6 +27,13 @@ class GalleryTests {
         assertThat(page.items().getFirst().name()).isEqualTo("b.mp4");
         assertThatThrownBy(() -> service.media(id, -1, 1)).isInstanceOf(ApiException.class);
     }
+    @Test void hidesSystemFoldersAndRejectsDirectAccess() throws Exception {
+        for (String name : new String[]{"$RECYCLE.BIN", "System Volume Information", ".Spotlight-V100", "lost+found"}) {
+            Files.createDirectory(root.resolve(name));
+            assertThatThrownBy(() -> service.media(GalleryService.encode(name), 0, 10)).isInstanceOf(ApiException.class);
+        }
+        assertThat(service.galleries()).containsExactly(new GalleryService.Gallery(id, "Maskeliya Trip"));
+    }
     @Test void detectsMissingDisk() throws Exception {
         Files.delete(root.resolve(".e-gallery-volume"));
         assertThatThrownBy(service::galleries).isInstanceOfSatisfying(ApiException.class,
@@ -41,7 +48,7 @@ class GalleryTests {
     }
     @Test void supportsVideoSeeking() throws Exception {
         Files.writeString(root.resolve("Maskeliya Trip/video.mp4"), "0123456789");
-        var mvc = MockMvcBuilders.standaloneSetup(new GalleryController(service, new GalleryThumbnailService(root.resolve("cache").toString(), "ffmpeg"))).build();
+        var mvc = MockMvcBuilders.standaloneSetup(new GalleryController(service, new GalleryPreviewService(root.resolve("cache").toString(), "ffmpeg"))).build();
         String url = "/api/public/galleries/" + id + "/media/" + GalleryService.encode("video.mp4") + "/content";
         mvc.perform(get(url)).andExpect(status().isOk()).andExpect(content().string("0123456789"));
         mvc.perform(get(url).header("Range", "bytes=2-5")).andExpect(status().isPartialContent())
