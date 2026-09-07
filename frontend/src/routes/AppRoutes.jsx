@@ -1,6 +1,7 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 
+import Gallery from "../pages/Gallery";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
 import ForgotPassword from "../pages/ForgotPassword";
@@ -20,10 +21,12 @@ export default function AppRoutes() {
 
         <Route
           path="/"
-          element={<Navigate to="/drive" replace />}
+          element={<Gallery />}
         />
 
 
+        <Route path="/gallery/:galleryId" element={<Gallery />} />
+        <Route path="/gallery" element={<Gallery />} />
         <Route path="/share/folder/:token" element={<PublicFolderShare />} />
 
         <Route

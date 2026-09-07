@@ -61,9 +61,17 @@ services:
       WISHES_MAX_IMAGE_SIZE_MB: "10"
 
       STORAGE_LOCATION: /app/uploads
+      GALLERY_LOCATION: /mnt/e-gallery
+      GALLERY_MARKER: 6CAC-54E8
 
     volumes:
       - /srv/drive-data/uploads:/app/uploads
+      - type: bind
+        source: /mnt/e-gallery
+        target: /mnt/e-gallery
+        read_only: true
+        bind:
+          create_host_path: false
 
     expose:
       - "8080"
